@@ -103,13 +103,32 @@ const maxParallelWorkers = 4
 const maxBatchWorkers = 4
 
 func (bp *CoreBPE) EncodeOrdinarySequential(text string) ([]int, error) {
-	indices, err := bp.Regex.FindAllStringIndex(text, -1)
-	if err != nil {
-		return nil, err
+	if len(text) == 0 {
+		return []int{}, nil
 	}
-	ret := make([]int, 0, len(indices))
-	for _, pair := range indices {
-		ret = bp.EncodePieceTo(text[pair[0]:pair[1]], ret)
+	if len(text) < 2048 {
+		indices, err := bp.Regex.FindAllStringIndex(text, -1)
+		if err != nil {
+			return nil, err
+		}
+		ret := make([]int, 0, len(indices))
+		for _, pair := range indices {
+			ret = bp.EncodePieceTo(text[pair[0]:pair[1]], ret)
+		}
+		return ret, nil
+	}
+
+	it := NewMatchIterator(text, bp.Regex)
+	ret := make([]int, 0, len(text)/4)
+	for {
+		start, end, ok, err := it.Next(text)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			break
+		}
+		ret = bp.EncodePieceTo(text[start:end], ret)
 	}
 	return ret, nil
 }
@@ -122,13 +141,32 @@ func (bp *CoreBPE) CountPiece(piece string) int {
 }
 
 func (bp *CoreBPE) CountOrdinarySequential(text string) (int, error) {
-	indices, err := bp.Regex.FindAllStringIndex(text, -1)
-	if err != nil {
-		return 0, err
+	if len(text) == 0 {
+		return 0, nil
 	}
+	if len(text) < 2048 {
+		indices, err := bp.Regex.FindAllStringIndex(text, -1)
+		if err != nil {
+			return 0, err
+		}
+		count := 0
+		for _, pair := range indices {
+			count += bp.CountPiece(text[pair[0]:pair[1]])
+		}
+		return count, nil
+	}
+
+	it := NewMatchIterator(text, bp.Regex)
 	count := 0
-	for _, pair := range indices {
-		count += bp.CountPiece(text[pair[0]:pair[1]])
+	for {
+		start, end, ok, err := it.Next(text)
+		if err != nil {
+			return 0, err
+		}
+		if !ok {
+			break
+		}
+		count += bp.CountPiece(text[start:end])
 	}
 	return count, nil
 }
