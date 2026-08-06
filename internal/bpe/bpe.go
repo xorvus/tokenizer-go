@@ -5,17 +5,23 @@ import "math"
 const missingShortRank int32 = -1
 
 type RankIndex struct {
+	short1 [256]int32
 	short2 [1 << 16]int32
 	ranks  map[string]int
 }
 
 func NewRankIndex(ranks map[string]int) RankIndex {
 	idx := RankIndex{ranks: ranks}
+	for i := range idx.short1 {
+		idx.short1[i] = missingShortRank
+	}
 	for i := range idx.short2 {
 		idx.short2[i] = missingShortRank
 	}
 	for token, rank := range ranks {
-		if len(token) == 2 && rank <= math.MaxInt32 {
+		if len(token) == 1 && rank <= math.MaxInt32 {
+			idx.short1[token[0]] = int32(rank)
+		} else if len(token) == 2 && rank <= math.MaxInt32 {
 			key := uint16(token[0])<<8 | uint16(token[1])
 			idx.short2[key] = int32(rank)
 		}
@@ -24,6 +30,13 @@ func NewRankIndex(ranks map[string]int) RankIndex {
 }
 
 func (idx *RankIndex) Lookup(token string) (int, bool) {
+	if len(token) == 1 {
+		rank := idx.short1[token[0]]
+		if rank != missingShortRank {
+			return int(rank), true
+		}
+		return 0, false
+	}
 	if len(token) == 2 {
 		key := uint16(token[0])<<8 | uint16(token[1])
 		rank := idx.short2[key]
