@@ -107,10 +107,9 @@ func (bp *CoreBPE) EncodeOrdinarySequential(text string) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]int, 0, (len(text)+2)/3)
+	ret := make([]int, 0, len(indices))
 	for _, pair := range indices {
-		piece := text[pair[0]:pair[1]]
-		ret = bp.EncodePieceTo(piece, ret)
+		ret = bp.EncodePieceTo(text[pair[0]:pair[1]], ret)
 	}
 	return ret, nil
 }
@@ -288,9 +287,8 @@ func (bp *CoreBPE) EncodeSubTextMatches(subText string, ret []int) ([]int, int, 
 
 	lastLen := 0
 	for _, pair := range indices {
-		piece := subText[pair[0]:pair[1]]
 		before := len(ret)
-		ret = bp.EncodePieceTo(piece, ret)
+		ret = bp.EncodePieceTo(subText[pair[0]:pair[1]], ret)
 		lastLen = len(ret) - before
 	}
 	return ret, lastLen, nil

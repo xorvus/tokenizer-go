@@ -78,7 +78,7 @@ you can run benchmark in test folder
 ### Benchmark result
 | name | time/op | os | cpu | text | times |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | 40422 ns | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
+| tokenizer-go | 39954 ns | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
 | tiktoken | 37975 ns | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
 
 It looks like the performance is almost the same.
