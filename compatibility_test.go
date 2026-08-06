@@ -1,8 +1,6 @@
 package tokenizer_test
 
 import (
-	"encoding/json"
-	"os"
 	"reflect"
 	"testing"
 
@@ -11,30 +9,19 @@ import (
 )
 
 type TestCase struct {
-	Text   string `json:"text"`
-	Tokens []int  `json:"tokens"`
+	Text   string
+	Tokens []int
 }
 
-type FixtureFile struct {
-	Encoding         string     `json:"encoding"`
-	ReferenceVersion string     `json:"reference_version"`
-	Cases            []TestCase `json:"cases"`
-}
-
-func loadGoldenCases(t *testing.T, path string) []TestCase {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("failed reading testdata %s: %v", path, err)
-	}
-	var fixture FixtureFile
-	if err := json.Unmarshal(data, &fixture); err == nil && len(fixture.Cases) > 0 {
-		return fixture.Cases
-	}
-	var cases []TestCase
-	if err := json.Unmarshal(data, &cases); err != nil {
-		t.Fatalf("failed parsing testdata %s: %v", path, err)
-	}
-	return cases
+var goldenCL100KCases = []TestCase{
+	{Text: "", Tokens: []int{}},
+	{Text: "hello", Tokens: []int{15339}},
+	{Text: "hello world", Tokens: []int{15339, 1917}},
+	{Text: "Hello, world!", Tokens: []int{9906, 11, 1917, 0}},
+	{Text: "你好世界", Tokens: []int{57668, 53901, 3574, 244, 98220}},
+	{Text: "こんにちは", Tokens: []int{90115}},
+	{Text: "😀", Tokens: []int{76460, 222}},
+	{Text: "hello\nworld", Tokens: []int{15339, 198, 14957}},
 }
 
 func TestRealCL100KCompatibility(t *testing.T) {
@@ -42,8 +29,7 @@ func TestRealCL100KCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed loading cl100k_base.tiktoken: %v", err)
 	}
-	cases := loadGoldenCases(t, "test/cl100k_base.json")
-	for _, tc := range cases {
+	for _, tc := range goldenCL100KCases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {
 			t.Errorf("EncodeOrdinary(%q) error: %v", tc.Text, err)

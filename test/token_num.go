@@ -10,7 +10,6 @@ import (
 	"github.com/xorvus/tokenizer-go"
 )
 
-// main
 func main() {
 	textList, modelList, encodingList := ReadTestFile()
 	testTokenByModel(textList, modelList)
@@ -18,7 +17,6 @@ func main() {
 	testTokenByEncoding(textList, encodingList)
 }
 
-// read all columns from a file
 func ReadTestFile() (textList []string, modelList []string, encodingList []string) {
 	file, err := os.Open("test.txt")
 	if err != nil {
@@ -45,33 +43,38 @@ func ReadTestFile() (textList []string, modelList []string, encodingList []strin
 	return
 }
 
-// getTokenByModel
-func getTokenByModel(text string, model string) (num_tokens int) {
+func getTokenByModel(text string, model string) int {
 	tkm, err := tokenizer.ForModel(model)
 	if err != nil {
 		log.Printf("ForModel error: %v", err)
-		return
+		return 0
 	}
 
-	token, _ := tkm.EncodeOrdinary(text)
+	tokens, err := tkm.EncodeOrdinary(text)
+	if err != nil {
+		log.Printf("Encode error: %v", err)
+		return 0
+	}
 
-	return len(token)
+	return len(tokens)
 }
 
-// getTokenByEncoding
-func getTokenByEncoding(text string, encoding string) (num_tokens int) {
+func getTokenByEncoding(text string, encoding string) int {
 	tke, err := tokenizer.GetEncoding(tokenizer.Encoding(encoding))
 	if err != nil {
 		log.Printf("GetEncoding error: %v", err)
-		return
+		return 0
 	}
 
-	token, _ := tke.EncodeOrdinary(text)
+	tokens, err := tke.EncodeOrdinary(text)
+	if err != nil {
+		log.Printf("Encode error: %v", err)
+		return 0
+	}
 
-	return len(token)
+	return len(tokens)
 }
 
-// testTokenByModel
 func testTokenByModel(textList []string, modelList []string) {
 	for i := 0; i < len(textList); i++ {
 		for j := 0; j < len(modelList); j++ {
@@ -80,7 +83,6 @@ func testTokenByModel(textList []string, modelList []string) {
 	}
 }
 
-// testTokenByEncoding
 func testTokenByEncoding(textList []string, encodingList []string) {
 	for i := 0; i < len(textList); i++ {
 		for j := 0; j < len(encodingList); j++ {
