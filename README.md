@@ -7,6 +7,7 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 - **Blazing Fast**: Outperforms official OpenAI `tiktoken` (Rust native) in single-thread and multi-core benchmarks.
 - **Pure Go**: 100% Go implementation (`zero CGO`) with embedded vocabulary files (`//go:embed`).
 - **OpenAI Parity & Harmony**: Supports `cl100k_base`, `o200k_base`, and `o200k_harmony` with model mappings for `gpt-4o`, `gpt-4.5`, `gpt-oss-*`, `o1`, `o3`, etc.
+- **Custom Encodings**: Create custom BPE tokenizers safely using `tokenizer.New(tokenizer.Config{...})` with strict validation.
 - **API Parity**: Includes `EncodeSingleToken`, `DecodeSingleTokenBytes`, `TokenByteValues`, `DecodeWithOffsets`, `DecodeBatch`, and `DecodeBytesBatch`.
 - **Profile-Guided Optimization (PGO)**: Includes built-in `default.pgo` profiles for compiler inlining speedups.
 - **Batch Processing**: Native multi-core parallel batch encoding (`EncodeOrdinaryBatch`).
@@ -26,7 +27,7 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 ## Installation
 
 ```bash
-go get github.com/xorvus/tokenizer-go@v0.7.0
+go get github.com/xorvus/tokenizer-go@v0.8.0
 ```
 
 ## Quick Start
@@ -42,29 +43,27 @@ import (
 )
 
 func main() {
-	// Get tokenizer for GPT-4o or GPT-OSS models
+	// 1. Get tokenizer for standard OpenAI model
 	tok, err := tokenizer.ForModel("gpt-4o")
 	if err != nil {
 		log.Fatalf("failed loading model: %v", err)
 	}
 
-	// 1. Single text encoding
 	tokens, _ := tok.EncodeOrdinary("Hello, world!")
 	fmt.Printf("Tokens: %v (Count: %d)\n", tokens, len(tokens))
 
-	// 2. Decode with byte offsets for visualizer/editor UI
-	decodedText, offsets, _ := tok.DecodeWithOffsets(tokens)
-	fmt.Printf("Decoded: %s, Offsets: %v\n", decodedText, offsets)
-
-	// 3. Single token lookup
-	tokenID, _ := tok.EncodeSingleToken("hello")
-	tokenBytes, _ := tok.DecodeSingleTokenBytes(tokenID)
-	fmt.Printf("Single Token ID for 'hello': %d -> %s\n", tokenID, string(tokenBytes))
-
-	// 4. Multi-core parallel batch encoding
-	texts := []string{"First line of text", "Second line of text"}
-	batchTokens, _ := tok.EncodeOrdinaryBatch(texts)
-	fmt.Printf("Batch results: %v\n", batchTokens)
+	// 2. Custom Tokenizer Construction
+	customTok, err := tokenizer.New(tokenizer.Config{
+		Name:    "my-custom-bpe",
+		Pattern: `\p{L}+|\p{N}+|\s+`,
+		MergeableRanks: map[string]int{
+			"a": 0, "b": 1, "c": 2, // ... all 0-255 bytes required
+		},
+		SpecialTokens: map[string]int{
+			"<|END|>": 256,
+		},
+	})
+	_ = customTok
 }
 ```
 
