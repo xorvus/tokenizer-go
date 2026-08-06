@@ -85,16 +85,15 @@ func (r *Registry) Resolve(model string) (Resolution, error) {
 }
 
 func (r *Registry) resolveExactOrAlias(model string) (Resolution, bool) {
-	target := model
+	if spec, ok := r.exactModels[model]; ok {
+		return Resolution{RequestedModel: model, CanonicalModel: spec.CanonicalName, Provider: spec.Provider, TokenizerID: spec.TokenizerID, Accuracy: AccuracyExactLocal}, true
+	}
 	if canonical, ok := r.aliases[model]; ok {
-		target = canonical
+		if spec, ok := r.exactModels[canonical]; ok {
+			return Resolution{RequestedModel: model, CanonicalModel: spec.CanonicalName, Provider: spec.Provider, TokenizerID: spec.TokenizerID, Accuracy: AccuracyExactLocal}, true
+		}
 	}
-	spec, ok := r.exactModels[target]
-	if !ok {
-		return Resolution{}, false
-	}
-	res := Resolution{RequestedModel: model, CanonicalModel: spec.CanonicalName, Provider: spec.Provider, TokenizerID: spec.TokenizerID, Accuracy: AccuracyExactLocal}
-	return res, true
+	return Resolution{}, false
 }
 
 func (r *Registry) resolvePrefix(model string) (Resolution, bool) {
