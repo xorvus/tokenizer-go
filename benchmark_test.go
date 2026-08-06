@@ -1,30 +1,49 @@
 package tokenizer_test
 
 import (
-	"strings"
+	"os"
 	"testing"
+
+	"github.com/pkoukk/tiktoken-go/tokenizer-go"
 )
 
-func BenchmarkEncodeShortASCII(b *testing.B) {
-	text := "Hello world"
+func BenchmarkEmbeddedCL100KShortASCII(b *testing.B) {
+	tok, err := tokenizer.GetEmbeddedCL100K()
+	if err != nil {
+		b.Fatalf("failed loading tokenizer: %v", err)
+	}
+	text := "Hello, world!"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = len(text)
+		_, _ = tok.EncodeOrdinary(text)
 	}
 }
 
-func BenchmarkEncodeLongASCII(b *testing.B) {
-	text := strings.Repeat("Hello world, this is a test. ", 1000)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = len(text)
+func BenchmarkEmbeddedCL100KUnicode(b *testing.B) {
+	tok, err := tokenizer.GetEmbeddedCL100K()
+	if err != nil {
+		b.Fatalf("failed loading tokenizer: %v", err)
 	}
-}
-
-func BenchmarkEncodeUnicode(b *testing.B) {
 	text := "你好世界こんにちは😀"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = len(text)
+		_, _ = tok.EncodeOrdinary(text)
+	}
+}
+
+func BenchmarkEmbeddedCL100KFullUDHR(b *testing.B) {
+	tok, err := tokenizer.GetEmbeddedCL100K()
+	if err != nil {
+		b.Fatalf("failed loading tokenizer: %v", err)
+	}
+	text, err := os.ReadFile("/tmp/udhr.txt")
+	if err != nil {
+		b.Skip("udhr.txt not found in /tmp")
+	}
+	input := string(text)
+	b.ResetTimer()
+	b.SetBytes(int64(len(input)))
+	for i := 0; i < b.N; i++ {
+		_, _ = tok.EncodeOrdinary(input)
 	}
 }
