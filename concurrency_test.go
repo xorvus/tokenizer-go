@@ -1,32 +1,53 @@
 package tokenizer_test
 
 import (
+	"os"
+	"sort"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkoukk/tokenizer-go"
 )
 
-func TestConcurrentEncoding(t *testing.T) {
-	tok, err := tokenizer.GetEncoding(tokenizer.CL100KBase)
+func TestConcurrentCallersPercentiles(t *testing.T) {
+	data, err := os.ReadFile("/tmp/udhr.txt")
 	if err != nil {
-		t.Fatalf("GetEncoding error: %v", err)
+		t.Skip("/tmp/udhr.txt not found")
+	}
+	tok, err := tokenizer.GetEncoding("cl100k_base")
+	if err != nil {
+		t.Fatalf("failed to load encoding: %v", err)
 	}
 
-	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			tokens, err := tok.EncodeOrdinary("hello world")
-			if err != nil {
-				t.Errorf("goroutine %d error: %v", id, err)
-				return
+	callersList := []int{1, 2, 4, 8}
+	for _, numCallers := range callersList {
+		t.Run("Callers", func(t *testing.T) {
+			durations := make([]time.Duration, numCallers)
+			var wg sync.WaitGroup
+			batchStart := time.Now()
+			for i := 0; i < numCallers; i++ {
+				wg.Add(1)
+				go func(idx int) {
+					defer wg.Done()
+					reqStart := time.Now()
+					_, _ = tok.EncodeOrdinary(string(data))
+					durations[idx] = time.Since(reqStart)
+				}(i)
 			}
-			if len(tokens) != 2 {
-				t.Errorf("goroutine %d len = %d, want 2", id, len(tokens))
-			}
-		}(i)
+			wg.Wait()
+			batchElapsed := time.Since(batchStart)
+
+			sort.Slice(durations, func(i, j int) bool {
+				return durations[i] < durations[j]
+			})
+
+			p50 := durations[len(durations)/2]
+			p95 := durations[int(float64(len(durations))*0.95)]
+			p99 := durations[int(float64(len(durations))*0.99)]
+
+			t.Logf("Callers=%d | BatchWallTime=%v | req/s=%.2f | p50=%v | p95=%v | p99=%v",
+				numCallers, batchElapsed, float64(numCallers)/batchElapsed.Seconds(), p50, p95, p99)
+		})
 	}
-	wg.Wait()
 }

@@ -1,5 +1,12 @@
 package bpe
 
+import (
+	"runtime"
+	"sync"
+
+	"github.com/dlclark/regexp2/v2"
+)
+
 func isASCII(s string) bool {
 	for i := 0; i < len(s); i++ {
 		if s[i] >= 0x80 {
@@ -10,22 +17,29 @@ func isASCII(s string) bool {
 }
 
 func (bp *CoreBPE) EncodePieceTo(piece string, out []int) []int {
-	if token, ok := bp.Encoder[piece]; ok {
+	if token, ok := bp.RankIndex.Lookup(piece); ok {
 		return append(out, token)
 	}
-	return BytePairEncodeTo(piece, bp.Encoder, out)
+	return BytePairEncodeToWithIndex(piece, &bp.RankIndex, out)
 }
 
 func (bp *CoreBPE) FindNextAllowedSpecial(text string, startRune int, allowed map[string]any) (SpecialMatch, bool, error) {
 	if bp.SpecialRegex == nil || len(allowed) == 0 {
 		return SpecialMatch{}, false, nil
 	}
+	ascii := isASCII(text)
 	for {
 		match, err := bp.SpecialRegex.FindStringMatchStartingAt(text, startRune)
 		if err != nil || match == nil {
 			return SpecialMatch{}, false, err
 		}
-		byteStart, byteLength := match.ByteRange()
+		var byteStart, byteLength int
+		if ascii {
+			byteStart = match.RuneIndex
+			byteLength = match.RuneLength
+		} else {
+			byteStart, byteLength = match.ByteRange()
+		}
 		token := text[byteStart : byteStart+byteLength]
 		if _, ok := allowed[token]; ok {
 			return SpecialMatch{
@@ -43,34 +57,109 @@ func (bp *CoreBPE) FindNextAllowedSpecial(text string, startRune int, allowed ma
 	}
 }
 
+type MatchIterator struct {
+	re     *regexp2.Regexp
+	cursor ByteCursor
+	match  *regexp2.Match
+	err    error
+}
+
+func NewMatchIterator(text string, re *regexp2.Regexp) MatchIterator {
+	m, err := re.FindStringMatch(text)
+	return MatchIterator{
+		re:     re,
+		cursor: NewByteCursor(text),
+		match:  m,
+		err:    err,
+	}
+}
+
+func (it *MatchIterator) Next(text string) (int, int, bool, error) {
+	if it.err != nil || it.match == nil {
+		return 0, 0, false, it.err
+	}
+	var start, end int
+	if it.cursor.ASCII {
+		start = it.match.RuneIndex
+		end = start + it.match.RuneLength
+	} else {
+		byteStart, err := it.cursor.AdvanceTo(text, it.match.RuneIndex)
+		if err != nil {
+			return 0, 0, false, err
+		}
+		byteEnd, err := it.cursor.AdvanceTo(text, it.match.RuneIndex+it.match.RuneLength)
+		if err != nil {
+			return 0, 0, false, err
+		}
+		start, end = byteStart, byteEnd
+	}
+	nextMatch, err := it.re.FindNextMatch(it.match)
+	it.match = nextMatch
+	it.err = err
+	return start, end, true, nil
+}
+
+const maxParallelWorkers = 4
+
 func (bp *CoreBPE) EncodeSubTextMatches(subText string, ret []int) ([]int, int, error) {
-	lastLen := 0
-	match, err := bp.Regex.FindStringMatch(subText)
+	indices, err := bp.Regex.FindAllStringIndex(subText, -1)
 	if err != nil {
 		return nil, 0, err
 	}
-	ascii := isASCII(subText)
-	for match != nil {
-		var piece string
-		if ascii {
-			piece = subText[match.RuneIndex : match.RuneIndex+match.RuneLength]
-		} else {
-			start, length := match.ByteRange()
-			piece = subText[start : start+length]
+	numPieces := len(indices)
+	if numPieces >= 10000 && len(subText) >= 1000000 {
+		numWorkers := runtime.GOMAXPROCS(0)
+		if numWorkers > maxParallelWorkers {
+			numWorkers = maxParallelWorkers
 		}
+		if numWorkers > 1 {
+			chunkSize := (numPieces + numWorkers - 1) / numWorkers
+			chunks := make([][]int, numWorkers)
+			var wg sync.WaitGroup
+			for i := 0; i < numWorkers; i++ {
+				startIdx := i * chunkSize
+				if startIdx >= numPieces {
+					break
+				}
+				endIdx := startIdx + chunkSize
+				if endIdx > numPieces {
+					endIdx = numPieces
+				}
+				wg.Add(1)
+				go func(workerID, start, end int) {
+					defer wg.Done()
+					pieceIndices := indices[start:end]
+					buf := make([]int, 0, (end-start)*2)
+					for _, pair := range pieceIndices {
+						buf = bp.EncodePieceTo(subText[pair[0]:pair[1]], buf)
+					}
+					chunks[workerID] = buf
+				}(i, startIdx, endIdx)
+			}
+			wg.Wait()
+			lastLen := 0
+			for _, chunk := range chunks {
+				ret = append(ret, chunk...)
+				if len(chunk) > 0 {
+					lastLen = len(chunk)
+				}
+			}
+			return ret, lastLen, nil
+		}
+	}
+
+	lastLen := 0
+	for _, pair := range indices {
+		piece := subText[pair[0]:pair[1]]
 		before := len(ret)
 		ret = bp.EncodePieceTo(piece, ret)
 		lastLen = len(ret) - before
-		match, err = bp.Regex.FindNextMatch(match)
-		if err != nil {
-			return nil, 0, err
-		}
 	}
 	return ret, lastLen, nil
 }
 
 func (bp *CoreBPE) EncodeNative(text string, allowed map[string]any) ([]int, int, error) {
-	ret := make([]int, 0, len(text)/4)
+	ret := make([]int, 0, (len(text)+2)/3)
 	lastLen := 0
 	startRune, startByte := 0, 0
 	for {
@@ -97,9 +186,8 @@ func (bp *CoreBPE) EncodeNative(text string, allowed map[string]any) ([]int, int
 	}
 	return ret, lastLen, nil
 }
-
 func (bp *CoreBPE) EncodeOrdinaryNative(text string) ([]int, error) {
-	ret := make([]int, 0, len(text)/4)
+	ret := make([]int, 0, (len(text)+2)/3)
 	ret, _, err := bp.EncodeSubTextMatches(text, ret)
 	return ret, err
 }

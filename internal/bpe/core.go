@@ -19,6 +19,7 @@ type Config struct {
 
 type CoreBPE struct {
 	Encoder              map[string]int
+	RankIndex            RankIndex
 	DecoderSlice         []string
 	SpecialTokensEncoder map[string]int
 	SpecialTokensDecoder map[int]string
@@ -101,6 +102,7 @@ func NewCoreBPE(encoder map[string]int, decoder []string, special map[string]int
 	}
 	return &CoreBPE{
 		Encoder:              encoder,
+		RankIndex:            NewRankIndex(encoder),
 		DecoderSlice:         decoder,
 		SpecialTokensEncoder: special,
 		SpecialTokensDecoder: specialDecoder,

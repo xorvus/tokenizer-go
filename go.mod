@@ -2,4 +2,4 @@ module github.com/pkoukk/tokenizer-go
 
 go 1.26.5
 
-require github.com/dlclark/regexp2/v2 v2.0.1
+require github.com/dlclark/regexp2/v2 v2.5.2
