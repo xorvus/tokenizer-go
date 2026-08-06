@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/xorvus/tokenizer-go"
-	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 var goldenO200KCases = []TestCase{
@@ -20,9 +19,9 @@ var goldenO200KCases = []TestCase{
 }
 
 func TestO200KBaseEncodeParity(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("test/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
+	tok, err := tokenizer.GetEncoding(tokenizer.O200KBase)
 	if err != nil {
-		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
+		t.Fatalf("failed loading o200k_base: %v", err)
 	}
 	for _, tc := range goldenO200KCases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
@@ -37,9 +36,9 @@ func TestO200KBaseEncodeParity(t *testing.T) {
 }
 
 func TestO200KBaseDecodeRoundTrip(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("test/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
+	tok, err := tokenizer.GetEncoding(tokenizer.O200KBase)
 	if err != nil {
-		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
+		t.Fatalf("failed loading o200k_base: %v", err)
 	}
 	for _, tc := range goldenO200KCases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
@@ -58,9 +57,9 @@ func TestO200KBaseDecodeRoundTrip(t *testing.T) {
 }
 
 func TestO200KBaseSpecialTokens(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("test/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
+	tok, err := tokenizer.GetEncoding(tokenizer.O200KBase)
 	if err != nil {
-		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
+		t.Fatalf("failed loading o200k_base: %v", err)
 	}
 	tokens, err := tok.EncodeOrdinary("<|endoftext|>")
 	if err != nil {

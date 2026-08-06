@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/xorvus/tokenizer-go"
-	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 type TestCase struct {
@@ -25,9 +24,9 @@ var goldenCL100KCases = []TestCase{
 }
 
 func TestRealCL100KCompatibility(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("test/cl100k_base.tiktoken", openai.PatternCL100K, openai.SpecialTokensCL100K())
+	tok, err := tokenizer.GetEncoding(tokenizer.CL100KBase)
 	if err != nil {
-		t.Fatalf("failed loading cl100k_base.tiktoken: %v", err)
+		t.Fatalf("failed loading cl100k_base: %v", err)
 	}
 	for _, tc := range goldenCL100KCases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
