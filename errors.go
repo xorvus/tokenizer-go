@@ -13,5 +13,6 @@ var (
 	ErrMissingByteToken   = errors.New("missing single-byte token (0-255 coverage required)")
 	ErrNegativeRank       = errors.New("rank cannot be negative")
 	ErrDuplicateRank      = errors.New("duplicate rank ID detected")
-	ErrTokenConflict      = errors.New("special token conflicts with regular token")
+	ErrTokenConflict             = errors.New("special token conflicts with regular token")
+	ErrExactTokenizerUnavailable = errors.New("exact tokenizer unavailable for model")
 )

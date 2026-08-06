@@ -351,3 +351,40 @@ func (t *Tokenizer) DecodeBytesBatch(batch [][]int) ([][]byte, error) {
 	}
 	return res, nil
 }
+
+func CountForModel(model string, text string, opts ...CountOption) (CountResult, error) {
+	cfg := DefaultCountConfig()
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	res, err := ResolveModel(model)
+	if err != nil {
+		return CountResult{}, err
+	}
+
+	if cfg.ExactOnly && res.UsedFallback {
+		return CountResult{}, fmt.Errorf("%w: model %s requires fallback but ExactOnly requested", ErrExactTokenizerUnavailable, model)
+	}
+
+	tok, err := GetEncoding(Encoding(res.TokenizerID))
+	if err != nil {
+		return CountResult{}, err
+	}
+
+	count, err := tok.Count(text)
+	if err != nil {
+		return CountResult{}, err
+	}
+
+	return CountResult{
+		Tokens:         count,
+		RequestedModel: res.RequestedModel,
+		CanonicalModel: res.CanonicalModel,
+		TokenizerID:    res.TokenizerID,
+		Provider:       res.Provider,
+		Accuracy:       res.Accuracy,
+		UsedFallback:   res.UsedFallback,
+		FallbackReason: res.Reason,
+	}, nil
+}
