@@ -5,13 +5,41 @@ import "math"
 const missingShortRank int32 = -1
 
 type RankIndex struct {
-	short1 [256]int32
-	short2 [1 << 16]int32
-	ranks  map[string]int
+	short1      [256]int32
+	short2      [1 << 16]int32
+	shortPacked map[uint64]int32
+	ranks       map[string]int
+}
+
+func packKey(token string) (uint64, bool) {
+	l := len(token)
+	if l < 3 || l > 7 {
+		return 0, false
+	}
+	key := uint64(l)
+	for i := 0; i < l; i++ {
+		key |= uint64(token[i]) << ((i + 1) * 8)
+	}
+	return key, true
+}
+
+func packKeyBytes(piece string, start, end int) (uint64, bool) {
+	l := end - start
+	if l < 3 || l > 7 {
+		return 0, false
+	}
+	key := uint64(l)
+	for i := 0; i < l; i++ {
+		key |= uint64(piece[start+i]) << ((i + 1) * 8)
+	}
+	return key, true
 }
 
 func NewRankIndex(ranks map[string]int) RankIndex {
-	idx := RankIndex{ranks: ranks}
+	idx := RankIndex{
+		shortPacked: make(map[uint64]int32, len(ranks)/4),
+		ranks:       ranks,
+	}
 	for i := range idx.short1 {
 		idx.short1[i] = missingShortRank
 	}
@@ -19,28 +47,40 @@ func NewRankIndex(ranks map[string]int) RankIndex {
 		idx.short2[i] = missingShortRank
 	}
 	for token, rank := range ranks {
-		if len(token) == 1 && rank <= math.MaxInt32 {
+		if rank > math.MaxInt32 {
+			continue
+		}
+		if len(token) == 1 {
 			idx.short1[token[0]] = int32(rank)
-		} else if len(token) == 2 && rank <= math.MaxInt32 {
+		} else if len(token) == 2 {
 			key := uint16(token[0])<<8 | uint16(token[1])
 			idx.short2[key] = int32(rank)
+		} else if key, ok := packKey(token); ok {
+			idx.shortPacked[key] = int32(rank)
 		}
 	}
 	return idx
 }
 
 func (idx *RankIndex) Lookup(token string) (int, bool) {
-	if len(token) == 1 {
+	l := len(token)
+	if l == 1 {
 		rank := idx.short1[token[0]]
 		if rank != missingShortRank {
 			return int(rank), true
 		}
 		return 0, false
 	}
-	if len(token) == 2 {
+	if l == 2 {
 		key := uint16(token[0])<<8 | uint16(token[1])
 		rank := idx.short2[key]
 		if rank != missingShortRank {
+			return int(rank), true
+		}
+		return 0, false
+	}
+	if key, ok := packKey(token); ok {
+		if rank, ok := idx.shortPacked[key]; ok {
 			return int(rank), true
 		}
 		return 0, false
@@ -58,6 +98,28 @@ func (idx *RankIndex) Lookup2(b0, b1 byte) (int, bool) {
 	return 0, false
 }
 
+func (idx *RankIndex) LookupSlice(piece string, start, end int) (int, bool) {
+	l := end - start
+	if l == 1 {
+		rank := idx.short1[piece[start]]
+		if rank != missingShortRank {
+			return int(rank), true
+		}
+		return 0, false
+	}
+	if l == 2 {
+		return idx.Lookup2(piece[start], piece[start+1])
+	}
+	if key, ok := packKeyBytes(piece, start, end); ok {
+		if rank, ok := idx.shortPacked[key]; ok {
+			return int(rank), true
+		}
+		return 0, false
+	}
+	rank, ok := idx.ranks[piece[start:end]]
+	return rank, ok
+}
+
 type part struct {
 	start int
 	rank  int
@@ -67,13 +129,7 @@ func getPartRank(piece string, parts []part, i int, idx *RankIndex) int {
 	if i+2 < len(parts) {
 		start := parts[i].start
 		end := parts[i+2].start
-		if end-start == 2 {
-			if r, ok := idx.Lookup2(piece[start], piece[start+1]); ok {
-				return r
-			}
-			return math.MaxInt
-		}
-		if r, ok := idx.Lookup(piece[start:end]); ok {
+		if r, ok := idx.LookupSlice(piece, start, end); ok {
 			return r
 		}
 	}
@@ -149,18 +205,26 @@ func BytePairEncodeToWithIndex(piece string, idx *RankIndex, out []int) []int {
 	for i := 0; i < len(parts)-1; i++ {
 		start := parts[i].start
 		end := parts[i+1].start
-		if end-start == 1 {
-			out = append(out, int(idx.short1[piece[start]]))
-		} else if end-start == 2 {
-			if r, ok := idx.Lookup2(piece[start], piece[start+1]); ok {
-				out = append(out, r)
-			}
-		} else {
-			rank, _ := idx.Lookup(piece[start:end])
-			out = append(out, rank)
-		}
+		rank, _ := idx.LookupSlice(piece, start, end)
+		out = append(out, rank)
 	}
 	return out
+}
+
+func CountPieceToWithIndex(piece string, idx *RankIndex) int {
+	if len(piece) == 0 {
+		return 0
+	}
+	if len(piece) == 1 {
+		return 1
+	}
+	var local [33]part
+	parts := makePartsBuffer(len(piece)+1, local[:])
+	for i := 0; i < len(parts)-2; i++ {
+		parts[i].rank = getPartRank(piece, parts, i, idx)
+	}
+	parts = bytePairMergeLoop(piece, parts, idx)
+	return len(parts) - 1
 }
 
 func BytePairEncodeTo(piece string, ranks map[string]int, out []int) []int {

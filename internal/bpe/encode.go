@@ -114,6 +114,54 @@ func (bp *CoreBPE) EncodeOrdinarySequential(text string) ([]int, error) {
 	return ret, nil
 }
 
+func (bp *CoreBPE) CountPiece(piece string) int {
+	if _, ok := bp.RankIndex.Lookup(piece); ok {
+		return 1
+	}
+	return CountPieceToWithIndex(piece, &bp.RankIndex)
+}
+
+func (bp *CoreBPE) CountOrdinarySequential(text string) (int, error) {
+	indices, err := bp.Regex.FindAllStringIndex(text, -1)
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, pair := range indices {
+		count += bp.CountPiece(text[pair[0]:pair[1]])
+	}
+	return count, nil
+}
+
+func partitionByBytes(texts []string, maxWorkers int) []int {
+	n := len(texts)
+	if maxWorkers <= 1 || n <= 1 {
+		return []int{0, n}
+	}
+	totalBytes := 0
+	for _, t := range texts {
+		totalBytes += len(t)
+	}
+	if totalBytes < 16384 {
+		return []int{0, n}
+	}
+	targetBytesPerWorker := (totalBytes + maxWorkers - 1) / maxWorkers
+	bounds := make([]int, 0, maxWorkers+1)
+	bounds = append(bounds, 0)
+	currentBytes := 0
+	for i, t := range texts {
+		currentBytes += len(t)
+		if currentBytes >= targetBytesPerWorker && len(bounds) < maxWorkers {
+			bounds = append(bounds, i+1)
+			currentBytes = 0
+		}
+	}
+	if bounds[len(bounds)-1] != n {
+		bounds = append(bounds, n)
+	}
+	return bounds
+}
+
 func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
 	n := len(texts)
 	if n == 0 {
@@ -134,24 +182,27 @@ func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
 	if numWorkers > maxBatchWorkers {
 		numWorkers = maxBatchWorkers
 	}
-	if numWorkers > n {
-		numWorkers = n
+	bounds := partitionByBytes(texts, numWorkers)
+	numPartitions := len(bounds) - 1
+
+	if numPartitions <= 1 {
+		for i := 0; i < n; i++ {
+			tokens, err := bp.EncodeOrdinarySequential(texts[i])
+			if err != nil {
+				return nil, err
+			}
+			results[i] = tokens
+		}
+		return results, nil
 	}
 
-	chunkSize := (n + numWorkers - 1) / numWorkers
 	var wg sync.WaitGroup
 	var errOnce sync.Once
 	var firstErr error
 
-	for w := 0; w < numWorkers; w++ {
-		startIdx := w * chunkSize
-		if startIdx >= n {
-			break
-		}
-		endIdx := startIdx + chunkSize
-		if endIdx > n {
-			endIdx = n
-		}
+	for w := 0; w < numPartitions; w++ {
+		startIdx := bounds[w]
+		endIdx := bounds[w+1]
 
 		wg.Add(1)
 		go func(start, end int) {
@@ -184,11 +235,11 @@ func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
 
 	results := make([]int, n)
 	if n == 1 {
-		tokens, err := bp.EncodeOrdinarySequential(texts[0])
+		count, err := bp.CountOrdinarySequential(texts[0])
 		if err != nil {
 			return nil, err
 		}
-		results[0] = len(tokens)
+		results[0] = count
 		return results, nil
 	}
 
@@ -196,37 +247,40 @@ func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
 	if numWorkers > maxBatchWorkers {
 		numWorkers = maxBatchWorkers
 	}
-	if numWorkers > n {
-		numWorkers = n
+	bounds := partitionByBytes(texts, numWorkers)
+	numPartitions := len(bounds) - 1
+
+	if numPartitions <= 1 {
+		for i := 0; i < n; i++ {
+			count, err := bp.CountOrdinarySequential(texts[i])
+			if err != nil {
+				return nil, err
+			}
+			results[i] = count
+		}
+		return results, nil
 	}
 
-	chunkSize := (n + numWorkers - 1) / numWorkers
 	var wg sync.WaitGroup
 	var errOnce sync.Once
 	var firstErr error
 
-	for w := 0; w < numWorkers; w++ {
-		startIdx := w * chunkSize
-		if startIdx >= n {
-			break
-		}
-		endIdx := startIdx + chunkSize
-		if endIdx > n {
-			endIdx = n
-		}
+	for w := 0; w < numPartitions; w++ {
+		startIdx := bounds[w]
+		endIdx := bounds[w+1]
 
 		wg.Add(1)
 		go func(start, end int) {
 			defer wg.Done()
 			for i := start; i < end; i++ {
-				tokens, err := bp.EncodeOrdinarySequential(texts[i])
+				count, err := bp.CountOrdinarySequential(texts[i])
 				if err != nil {
 					errOnce.Do(func() {
 						firstErr = err
 					})
 					return
 				}
-				results[i] = len(tokens)
+				results[i] = count
 			}
 		}(startIdx, endIdx)
 	}
