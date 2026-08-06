@@ -45,17 +45,21 @@ func main() {
 ```
 
 ## Benchmark
-You can run benchmark in test folder.
+You can run benchmark in test folder (`BenchmarkEncodingInFullLanguage`).
 
 ### Benchmark result
 | name | time/op | os | cpu | text | times |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | 8795ns | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
-| tiktoken | 8838ns | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
+| tokenizer-go | 40931 ns | macOS arm64 | Apple M4 Pro | UDHR (line-by-line) | 100000 |
+| tiktoken | 39415 ns | macOS arm64 | Apple M4 Pro | UDHR (line-by-line) | 100000 |
 
-It looks like the performance is faster on short inputs.
+It looks like the performance is almost the same.
 
 Maybe the difference is due to the difference in the performance of the machine.
+
+Or maybe my benchmark method is not appropriate.
+
+If you have better benchmark method or if you want add your benchmark result, please feel free to submit a PR.
 
 ## License
 MIT License. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
