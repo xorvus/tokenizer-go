@@ -15,14 +15,24 @@ type TestCase struct {
 	Tokens []int  `json:"tokens"`
 }
 
-func loadGoldenCases(t *testing.T) []TestCase {
-	data, err := os.ReadFile("testdata/cl100k_base.json")
+type FixtureFile struct {
+	Encoding         string     `json:"encoding"`
+	ReferenceVersion string     `json:"reference_version"`
+	Cases            []TestCase `json:"cases"`
+}
+
+func loadGoldenCases(t *testing.T, path string) []TestCase {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("failed reading testdata: %v", err)
+		t.Fatalf("failed reading testdata %s: %v", path, err)
+	}
+	var fixture FixtureFile
+	if err := json.Unmarshal(data, &fixture); err == nil && len(fixture.Cases) > 0 {
+		return fixture.Cases
 	}
 	var cases []TestCase
 	if err := json.Unmarshal(data, &cases); err != nil {
-		t.Fatalf("failed parsing testdata: %v", err)
+		t.Fatalf("failed parsing testdata %s: %v", path, err)
 	}
 	return cases
 }
@@ -32,7 +42,7 @@ func TestRealCL100KCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed loading cl100k_base.tiktoken: %v", err)
 	}
-	cases := loadGoldenCases(t)
+	cases := loadGoldenCases(t, "testdata/cl100k_base.json")
 	for _, tc := range cases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {

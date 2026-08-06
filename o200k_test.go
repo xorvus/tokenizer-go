@@ -1,8 +1,6 @@
 package tokenizer_test
 
 import (
-	"encoding/json"
-	"os"
 	"reflect"
 	"testing"
 
@@ -10,24 +8,12 @@ import (
 	"github.com/pkoukk/tiktoken-go/tokenizer-go/internal/openai"
 )
 
-func loadO200KCases(t *testing.T) []TestCase {
-	data, err := os.ReadFile("testdata/o200k_base.json")
-	if err != nil {
-		t.Fatalf("failed reading o200k testdata: %v", err)
-	}
-	var cases []TestCase
-	if err := json.Unmarshal(data, &cases); err != nil {
-		t.Fatalf("failed parsing o200k testdata: %v", err)
-	}
-	return cases
-}
-
 func TestO200KBaseEncodeParity(t *testing.T) {
 	tok, err := tokenizer.NewFromFile("testdata/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
 	if err != nil {
 		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
 	}
-	cases := loadO200KCases(t)
+	cases := loadGoldenCases(t, "testdata/o200k_base.json")
 	for _, tc := range cases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {
@@ -45,7 +31,7 @@ func TestO200KBaseDecodeRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
 	}
-	cases := loadO200KCases(t)
+	cases := loadGoldenCases(t, "testdata/o200k_base.json")
 	for _, tc := range cases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {
