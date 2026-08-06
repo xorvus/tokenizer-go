@@ -45,13 +45,12 @@ func main() {
 ```
 
 ## Benchmark
-You can run benchmark in test folder (`BenchmarkEncodingInFullLanguage`).
+you can run benchmark in test folder
 
 ### Benchmark result
-| name | time/op | os | cpu | text | times |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | 40931 ns | macOS arm64 | Apple M4 Pro | UDHR (line-by-line) | 100000 |
-| tiktoken | 39415 ns | macOS arm64 | Apple M4 Pro | UDHR (line-by-line) | 100000 |
+name	time/op	os	cpu	text	times
+tokenizer-go	40931 ns	macOS arm64	Apple M4 Pro	UDHR	100000
+tiktoken	39415 ns	macOS arm64	Apple M4 Pro	UDHR	100000
 
 It looks like the performance is almost the same.
 
