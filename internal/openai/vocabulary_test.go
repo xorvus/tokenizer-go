@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkoukk/tiktoken-go/tokenizer-go/internal/openai"
+	"github.com/pkoukk/tokenizer-go/internal/openai"
 )
 
 func TestParseVocabulary(t *testing.T) {

@@ -3,8 +3,8 @@ package bpe_test
 import (
 	"testing"
 
-	"github.com/pkoukk/tiktoken-go/tokenizer-go/internal/bpe"
-	"github.com/pkoukk/tiktoken-go/tokenizer-go/internal/openai"
+	"github.com/pkoukk/tokenizer-go/internal/bpe"
+	"github.com/pkoukk/tokenizer-go/internal/openai"
 )
 
 func TestSpecialTokenHandling(t *testing.T) {

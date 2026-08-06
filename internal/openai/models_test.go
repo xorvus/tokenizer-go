@@ -3,7 +3,7 @@ package openai_test
 import (
 	"testing"
 
-	"github.com/pkoukk/tiktoken-go/tokenizer-go/internal/openai"
+	"github.com/pkoukk/tokenizer-go/internal/openai"
 )
 
 func TestEncodingNameForModel(t *testing.T) {

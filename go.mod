@@ -1,4 +1,4 @@
-module github.com/pkoukk/tiktoken-go/tokenizer-go
+module github.com/pkoukk/tokenizer-go
 
 go 1.26.5
 

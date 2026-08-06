@@ -11,7 +11,7 @@ Fast, thread-safe Byte Pair Encoding (BPE) tokenizer for OpenAI models in Go.
 
 ## Installation
 ```bash
-go get github.com/pkoukk/tiktoken-go/tokenizer-go
+go get github.com/pkoukk/tokenizer-go
 ```
 
 ## Quick Start
@@ -21,7 +21,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pkoukk/tiktoken-go/tokenizer-go"
+	"github.com/pkoukk/tokenizer-go"
 )
 
 func main() {

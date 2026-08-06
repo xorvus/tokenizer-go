@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pkoukk/tiktoken-go/tokenizer-go"
+	"github.com/pkoukk/tokenizer-go"
 )
 
 func BenchmarkEmbeddedCL100KShortASCII(b *testing.B) {

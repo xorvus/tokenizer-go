@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"strings"
 
-	"github.com/pkoukk/tiktoken-go/tokenizer-go/internal/openai"
+	"github.com/pkoukk/tokenizer-go/internal/openai"
 )
 
 //go:embed testdata/cl100k_base.tiktoken
