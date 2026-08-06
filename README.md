@@ -6,13 +6,15 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 
 - **Blazing Fast**: Outperforms official OpenAI `tiktoken` (Rust native) in single-thread and multi-core benchmarks.
 - **Pure Go**: 100% Go implementation (`zero CGO`) with embedded vocabulary files (`//go:embed`).
+- **OpenAI Parity & Harmony**: Supports `cl100k_base`, `o200k_base`, and `o200k_harmony` with model mappings for `gpt-4o`, `gpt-4.5`, `gpt-oss-*`, `o1`, `o3`, etc.
+- **API Parity**: Includes `EncodeSingleToken`, `DecodeSingleTokenBytes`, `TokenByteValues`, `DecodeWithOffsets`, `DecodeBatch`, and `DecodeBytesBatch`.
 - **Profile-Guided Optimization (PGO)**: Includes built-in `default.pgo` profiles for compiler inlining speedups.
 - **Batch Processing**: Native multi-core parallel batch encoding (`EncodeOrdinaryBatch`).
-- **Zero-Allocation Token Counting**: Ultra-fast token count API (`CountOrdinary` / `CountOrdinaryBatch`) with ~19.3% lower memory footprint.
+- **Low-Allocation Token Counting**: Fast token count API (`Count` / `CountOrdinaryBatch`) with ~19.3% lower memory footprint.
 
 ## Performance Benchmarks (Apple M4 Pro, macOS 15.0)
 
-| Scenario / Task | `tokenizer-go` (Pure Go v0.6.1 + PGO) | Official OpenAI `tiktoken` (Rust Native) | Speedup / Advantage |
+| Scenario / Task | `tokenizer-go` (Pure Go + PGO) | Official OpenAI `tiktoken` (Rust Native) | Speedup / Advantage |
 | :--- | :---: | :---: | :---: |
 | **`o200k_base` (GPT-4o)** | **`37,448 ns/op`** | `37,975 ns/op` | 🥇 **Faster than Rust Native** |
 | **`cl100k_base` (GPT-4)** | **`36,515 ns/op`** | `35,200 ns/op` | ~96% Rust Parity |
@@ -24,7 +26,7 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 ## Installation
 
 ```bash
-go get github.com/xorvus/tokenizer-go
+go get github.com/xorvus/tokenizer-go@v0.7.0
 ```
 
 ## Quick Start
@@ -40,7 +42,7 @@ import (
 )
 
 func main() {
-	// Get tokenizer for GPT-4o
+	// Get tokenizer for GPT-4o or GPT-OSS models
 	tok, err := tokenizer.ForModel("gpt-4o")
 	if err != nil {
 		log.Fatalf("failed loading model: %v", err)
@@ -50,18 +52,19 @@ func main() {
 	tokens, _ := tok.EncodeOrdinary("Hello, world!")
 	fmt.Printf("Tokens: %v (Count: %d)\n", tokens, len(tokens))
 
-	// 2. Ultra-fast token count (Zero allocation)
-	count, _ := tok.Count("Hello, world!")
-	fmt.Printf("Token count: %d\n", count)
+	// 2. Decode with byte offsets for visualizer/editor UI
+	decodedText, offsets, _ := tok.DecodeWithOffsets(tokens)
+	fmt.Printf("Decoded: %s, Offsets: %v\n", decodedText, offsets)
 
-	// 3. Multi-core parallel batch encoding
+	// 3. Single token lookup
+	tokenID, _ := tok.EncodeSingleToken("hello")
+	tokenBytes, _ := tok.DecodeSingleTokenBytes(tokenID)
+	fmt.Printf("Single Token ID for 'hello': %d -> %s\n", tokenID, string(tokenBytes))
+
+	// 4. Multi-core parallel batch encoding
 	texts := []string{"First line of text", "Second line of text"}
 	batchTokens, _ := tok.EncodeOrdinaryBatch(texts)
 	fmt.Printf("Batch results: %v\n", batchTokens)
-
-	// 4. Multi-core parallel batch counting (Low memory)
-	batchCounts, _ := tok.CountOrdinaryBatch(texts)
-	fmt.Printf("Batch counts: %v\n", batchCounts)
 }
 ```
 

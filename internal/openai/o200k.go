@@ -8,3 +8,13 @@ func SpecialTokensO200K() map[string]int {
 		"<|endofprompt|>": 200018,
 	}
 }
+
+func SpecialTokensO200KHarmony() map[string]int {
+	tokens := SpecialTokensO200K()
+	tokens["<|startoftext|>"] = 200019
+	tokens["<|im_start|>"] = 200020
+	tokens["<|im_end|>"] = 200021
+	tokens["<|call|>"] = 200022
+	tokens["<|return|>"] = 200023
+	return tokens
+}
