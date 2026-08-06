@@ -44,6 +44,27 @@ func main() {
 }
 ```
 
+## Testing
+
+Run unit tests and race condition checks across all packages:
+
+```bash
+go test ./...
+go test -race ./...
+```
+
+Run token count test script:
+
+```bash
+go run test/token_num.go
+```
+
+Run benchmarks in the `test` folder:
+
+```bash
+go test -benchmem -run=^$ -bench ^BenchmarkEncodingInFullLanguage$ -benchtime=100000x ./test
+```
+
 ## Benchmark
 you can run benchmark in test folder
 
