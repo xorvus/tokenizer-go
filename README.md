@@ -48,10 +48,11 @@ func main() {
 You can run benchmark in test folder.
 
 ### Benchmark result
-| name | time/op | os | cpu | text | times |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | 977 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 1000000 |
-| tiktoken | 1393 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 1000000 |
+```text
+name	time/op	os	cpu	text	times
+tokenizer-go	977 ns	macOS arm64	Apple M4 Pro	Short ASCII	1000000
+tiktoken	1393 ns	macOS arm64	Apple M4 Pro	Short ASCII	1000000
+```
 
 It looks like the performance is faster on short inputs.
 
@@ -63,10 +64,11 @@ If you have better benchmark method or if you want add your benchmark result, pl
 
 For full document encoding on UDHR corpus (3.277 MiB), tokenizer-go benchmark results:
 
-| name | encoding | time/op | os | cpu | text | times |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | cl100k_base | 187.14 ms | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
-| tiktoken | cl100k_base | 310.57 ms | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
+```text
+name	encoding	time/op	os	cpu	text	times
+tokenizer-go	cl100k_base	187.14 ms	macOS arm64	Apple M4 Pro	UDHR	100000
+tiktoken	cl100k_base	310.57 ms	macOS arm64	Apple M4 Pro	UDHR	100000
+```
 
 ## License
 MIT License. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
