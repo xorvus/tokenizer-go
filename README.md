@@ -15,7 +15,6 @@ Environment: Apple M4 Pro (macOS arm64), 3.277 MiB UDHR corpus.
 
 | Implementation | Short ASCII Latency | Ops / sec | Full UDHR Execution Time | Throughput | Total Allocated Bytes | Allocation Count |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| **`tiktoken-go` (Original)** | 3,720 ns/op | 268,817 ops/s | 774.37 ms/op | 4.23 MiB/s | 441.99 MB/op | 4,385,692/op |
 | **Python OpenAI `tiktoken` API** | 1,393 ns/op | 717,794 ops/s | 310.57 ms/op | 10.55 MiB/s | *Not measured setara* | *Not measured setara* |
 | **`tokenizer-go` (v0.4.0)** | **994.7 ns/op** | **1,005,328 ops/s** | **187.14 ms/op** | **17.51 MiB/s** | **201.18 MB/op** | **408/op** |
 
