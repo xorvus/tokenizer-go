@@ -24,3 +24,37 @@ func TestBytePairEncode(t *testing.T) {
 	}
 }
 
+func TestPackedKeyCollisionCornerCases(t *testing.T) {
+	testTokens := []string{
+		"abc",
+		"abcd",
+		"abcde",
+		"abcdef",
+		"abcdefg",
+		"\x00\x61\x62",         // leading zero (3 bytes)
+		"\x61\x62\x00",         // trailing zero (3 bytes)
+		"\x61\x62\x00\x00",     // trailing zeros (4 bytes)
+		"\x00\x00\x00",         // all zeros (3 bytes)
+		"\x00\x00\x00\x00",     // all zeros (4 bytes)
+		"\xff\xff\xff",         // 0xFF (3 bytes)
+		"\xff\xff\xff\xff",     // 0xFF (4 bytes)
+		"\xff\xff\xff\xff\xff", // 0xFF (5 bytes)
+	}
+
+	ranks := make(map[string]int)
+	for i, tok := range testTokens {
+		ranks[tok] = i + 100
+	}
+
+	idx := bpe.NewRankIndex(ranks)
+
+	for _, tok := range testTokens {
+		rank, ok := idx.Lookup(tok)
+		if !ok {
+			t.Errorf("Lookup(%q) failed, expected found", tok)
+		}
+		if rank != ranks[tok] {
+			t.Errorf("Lookup(%q) = %d, want %d", tok, rank, ranks[tok])
+		}
+	}
+}
