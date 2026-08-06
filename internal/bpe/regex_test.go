@@ -3,8 +3,8 @@ package bpe_test
 import (
 	"testing"
 
-	"github.com/pkoukk/tokenizer-go/internal/bpe"
-	"github.com/pkoukk/tokenizer-go/internal/openai"
+	"github.com/xorvus/tokenizer-go/internal/bpe"
+	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 func TestRegexSplit(t *testing.T) {

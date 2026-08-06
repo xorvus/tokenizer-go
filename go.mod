@@ -1,4 +1,4 @@
-module github.com/pkoukk/tokenizer-go
+module github.com/xorvus/tokenizer-go
 
 go 1.26.5
 

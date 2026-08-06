@@ -11,7 +11,7 @@ Fast, thread-safe Byte Pair Encoding (BPE) tokenizer for OpenAI models in Pure G
 
 ## Installation
 ```bash
-go get github.com/pkoukk/tokenizer-go
+go get github.com/xorvus/tokenizer-go
 ```
 
 ## Quick Start
@@ -21,7 +21,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pkoukk/tokenizer-go"
+	"github.com/xorvus/tokenizer-go"
 )
 
 func main() {

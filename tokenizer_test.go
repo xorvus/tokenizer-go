@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/pkoukk/tokenizer-go"
+	"github.com/xorvus/tokenizer-go"
 )
 
 func TestForModel(t *testing.T) {

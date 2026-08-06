@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pkoukk/tokenizer-go"
-	"github.com/pkoukk/tokenizer-go/internal/openai"
+	"github.com/xorvus/tokenizer-go"
+	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 type TestCase struct {

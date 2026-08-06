@@ -3,7 +3,7 @@ package tokenizer_test
 import (
 	"testing"
 
-	"github.com/pkoukk/tokenizer-go"
+	"github.com/xorvus/tokenizer-go"
 )
 
 func FuzzEncodeDecode(f *testing.F) {

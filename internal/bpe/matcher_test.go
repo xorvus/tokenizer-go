@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/dlclark/regexp2/v2"
-	"github.com/pkoukk/tokenizer-go/internal/openai"
+	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 func collectRegexp2Matches(text string, re *regexp2.Regexp) [][2]int {

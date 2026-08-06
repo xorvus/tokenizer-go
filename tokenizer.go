@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkoukk/tokenizer-go/internal/bpe"
-	"github.com/pkoukk/tokenizer-go/internal/openai"
+	"github.com/xorvus/tokenizer-go/internal/bpe"
+	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 type Tokenizer struct {

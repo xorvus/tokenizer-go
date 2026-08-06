@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/dlclark/regexp2/v2"
-	"github.com/pkoukk/tokenizer-go/internal/openai"
+	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
 func encodeParallel(bp *CoreBPE, subText string) ([]int, error) {

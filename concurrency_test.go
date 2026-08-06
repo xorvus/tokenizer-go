@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkoukk/tokenizer-go"
+	"github.com/xorvus/tokenizer-go"
 )
 
 func TestConcurrentCallersPercentiles(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pkoukk/tokenizer-go/internal/bpe"
+	"github.com/xorvus/tokenizer-go/internal/bpe"
 )
 
 func TestBytePairEncode(t *testing.T) {
