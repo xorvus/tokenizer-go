@@ -49,6 +49,15 @@ func (idx *RankIndex) Lookup(token string) (int, bool) {
 	return rank, ok
 }
 
+func (idx *RankIndex) Lookup2(b0, b1 byte) (int, bool) {
+	key := uint16(b0)<<8 | uint16(b1)
+	rank := idx.short2[key]
+	if rank != missingShortRank {
+		return int(rank), true
+	}
+	return 0, false
+}
+
 type part struct {
 	start int
 	rank  int
@@ -56,7 +65,15 @@ type part struct {
 
 func getPartRank(piece string, parts []part, i int, idx *RankIndex) int {
 	if i+2 < len(parts) {
-		if r, ok := idx.Lookup(piece[parts[i].start : parts[i+2].start]); ok {
+		start := parts[i].start
+		end := parts[i+2].start
+		if end-start == 2 {
+			if r, ok := idx.Lookup2(piece[start], piece[start+1]); ok {
+				return r
+			}
+			return math.MaxInt
+		}
+		if r, ok := idx.Lookup(piece[start:end]); ok {
 			return r
 		}
 	}
@@ -100,8 +117,14 @@ func makePartsBuffer(n int, local []part) []part {
 	} else {
 		parts = make([]part, n)
 	}
-	for i := range parts {
-		parts[i] = part{start: i, rank: math.MaxInt}
+	for i := 0; i < n; i++ {
+		parts[i].start = i
+	}
+	if n > 0 {
+		parts[n-1].rank = math.MaxInt
+	}
+	if n > 1 {
+		parts[n-2].rank = math.MaxInt
 	}
 	return parts
 }
@@ -111,8 +134,11 @@ func BytePairEncodeToWithIndex(piece string, idx *RankIndex, out []int) []int {
 		return out
 	}
 	if len(piece) == 1 {
-		rank, _ := idx.Lookup(piece)
-		return append(out, rank)
+		rank := idx.short1[piece[0]]
+		if rank != missingShortRank {
+			return append(out, int(rank))
+		}
+		return append(out, 0)
 	}
 	var local [33]part
 	parts := makePartsBuffer(len(piece)+1, local[:])
@@ -121,8 +147,18 @@ func BytePairEncodeToWithIndex(piece string, idx *RankIndex, out []int) []int {
 	}
 	parts = bytePairMergeLoop(piece, parts, idx)
 	for i := 0; i < len(parts)-1; i++ {
-		rank, _ := idx.Lookup(piece[parts[i].start : parts[i+1].start])
-		out = append(out, rank)
+		start := parts[i].start
+		end := parts[i+1].start
+		if end-start == 1 {
+			out = append(out, int(idx.short1[piece[start]]))
+		} else if end-start == 2 {
+			if r, ok := idx.Lookup2(piece[start], piece[start+1]); ok {
+				out = append(out, r)
+			}
+		} else {
+			rank, _ := idx.Lookup(piece[start:end])
+			out = append(out, rank)
+		}
 	}
 	return out
 }
