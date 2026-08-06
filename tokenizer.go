@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkoukk/tokenizer-go/internal/bpe"
 	"github.com/pkoukk/tokenizer-go/internal/openai"
@@ -18,7 +19,12 @@ func NewFromVocabulary(r io.Reader, pattern string, special map[string]int) (*To
 	if err != nil {
 		return nil, err
 	}
-	core, err := bpe.NewCoreBPE(vocab.Encoder, vocab.Decoder, special, pattern)
+	core, err := bpe.New(bpe.Config{
+		Pattern:        pattern,
+		MergeableRanks: vocab.Encoder,
+		DecoderSlice:   vocab.Decoder,
+		SpecialTokens:  special,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +38,37 @@ func NewFromFile(path string, pattern string, special map[string]int) (*Tokenize
 	}
 	defer f.Close()
 	return NewFromVocabulary(f, pattern, special)
+}
+
+func GetEncoding(name Encoding) (*Tokenizer, error) {
+	switch name {
+	case CL100KBase:
+		return getEmbeddedCL100K()
+	case O200KBase:
+		return getEmbeddedO200K()
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnknownEncoding, name)
+	}
+}
+
+func ForModel(model string) (*Tokenizer, error) {
+	encoding, err := EncodingForModel(model)
+	if err != nil {
+		return nil, err
+	}
+	return GetEncoding(encoding)
+}
+
+func EncodingForModel(model string) (Encoding, error) {
+	if enc, ok := openai.ModelToEncoding[model]; ok {
+		return Encoding(enc), nil
+	}
+	for prefix, enc := range openai.ModelPrefixToEncoding {
+		if strings.HasPrefix(model, prefix) {
+			return Encoding(enc), nil
+		}
+	}
+	return "", fmt.Errorf("%w: %s", ErrUnknownModel, model)
 }
 
 func (t *Tokenizer) Encode(text string) ([]int, error) {
@@ -61,23 +98,4 @@ func (t *Tokenizer) Decode(tokens []int) (string, error) {
 
 func (t *Tokenizer) DecodeBytes(tokens []int) ([]byte, error) {
 	return t.core.DecodeNative(tokens)
-}
-
-func GetEncoding(name Encoding) (*Tokenizer, error) {
-	switch name {
-	case CL100KBase:
-		return GetEmbeddedCL100K()
-	case O200KBase:
-		return GetEmbeddedO200K()
-	default:
-		return nil, fmt.Errorf("%w: %s", ErrUnknownEncoding, name)
-	}
-}
-
-func EncodingForModel(modelName string) (*Tokenizer, error) {
-	encName, err := openai.EncodingNameForModel(modelName)
-	if err != nil {
-		return nil, err
-	}
-	return GetEncoding(Encoding(encName))
 }

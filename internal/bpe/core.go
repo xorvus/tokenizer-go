@@ -10,6 +10,13 @@ import (
 	"github.com/dlclark/regexp2/v2"
 )
 
+type Config struct {
+	Pattern        string
+	MergeableRanks map[string]int
+	DecoderSlice   []string
+	SpecialTokens  map[string]int
+}
+
 type CoreBPE struct {
 	Encoder              map[string]int
 	DecoderSlice         []string
@@ -70,6 +77,10 @@ func BuildSpecialRegex(specialTokensEncoder map[string]int) (*regexp2.Regexp, er
 		tokens[i] = regexp.QuoteMeta(tokens[i])
 	}
 	return regexp2.Compile(strings.Join(tokens, "|"), regexp2.None)
+}
+
+func New(cfg Config) (*CoreBPE, error) {
+	return NewCoreBPE(cfg.MergeableRanks, cfg.DecoderSlice, cfg.SpecialTokens, cfg.Pattern)
 }
 
 func NewCoreBPE(encoder map[string]int, decoder []string, special map[string]int, pattern string) (*CoreBPE, error) {

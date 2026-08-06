@@ -7,9 +7,9 @@ import (
 )
 
 func FuzzEncodeDecode(f *testing.F) {
-	tok, err := tokenizer.GetEmbeddedCL100K()
+	tok, err := tokenizer.GetEncoding(tokenizer.CL100KBase)
 	if err != nil {
-		f.Fatalf("failed loading embedded cl100k: %v", err)
+		f.Fatalf("failed loading cl100k: %v", err)
 	}
 
 	f.Add("")

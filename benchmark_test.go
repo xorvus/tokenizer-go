@@ -8,7 +8,7 @@ import (
 )
 
 func BenchmarkEmbeddedCL100KShortASCII(b *testing.B) {
-	tok, err := tokenizer.GetEmbeddedCL100K()
+	tok, err := tokenizer.GetEncoding(tokenizer.CL100KBase)
 	if err != nil {
 		b.Fatalf("failed loading tokenizer: %v", err)
 	}
@@ -20,7 +20,7 @@ func BenchmarkEmbeddedCL100KShortASCII(b *testing.B) {
 }
 
 func BenchmarkEmbeddedCL100KUnicode(b *testing.B) {
-	tok, err := tokenizer.GetEmbeddedCL100K()
+	tok, err := tokenizer.GetEncoding(tokenizer.CL100KBase)
 	if err != nil {
 		b.Fatalf("failed loading tokenizer: %v", err)
 	}
@@ -32,7 +32,7 @@ func BenchmarkEmbeddedCL100KUnicode(b *testing.B) {
 }
 
 func BenchmarkEmbeddedCL100KFullUDHR(b *testing.B) {
-	tok, err := tokenizer.GetEmbeddedCL100K()
+	tok, err := tokenizer.GetEncoding(tokenizer.CL100KBase)
 	if err != nil {
 		b.Fatalf("failed loading tokenizer: %v", err)
 	}
