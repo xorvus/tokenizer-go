@@ -72,16 +72,5 @@ Run benchmarks in the `test` folder:
 go test -benchmem -run=^$ -bench ^BenchmarkEncodingInFullLanguage$ -benchtime=100000x ./test
 ```
 
-## Benchmark
-you can run benchmark in test folder
-
-### Benchmark result
-| name | encoding | time/op | os | cpu | text | times |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | o200k_base | 40028 ns | macOS 15.0 | Apple M4 Pro | UDHR | 100000 |
-| tiktoken | o200k_base | 37975 ns | macOS 15.0 | Apple M4 Pro | UDHR | 100000 |
-| tokenizer-go | cl100k_base | 36515 ns | macOS 15.0 | Apple M4 Pro | UDHR | 100000 |
-| tiktoken | cl100k_base | 35200 ns | macOS 15.0 | Apple M4 Pro | UDHR | 100000 |
-
 ## License
 MIT License. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
