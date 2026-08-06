@@ -139,31 +139,35 @@ func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
 		numWorkers = n
 	}
 
-	workCh := make(chan int, n)
-	for i := 0; i < n; i++ {
-		workCh <- i
-	}
-	close(workCh)
-
+	chunkSize := (n + numWorkers - 1) / numWorkers
 	var wg sync.WaitGroup
 	var errOnce sync.Once
 	var firstErr error
 
 	for w := 0; w < numWorkers; w++ {
+		startIdx := w * chunkSize
+		if startIdx >= n {
+			break
+		}
+		endIdx := startIdx + chunkSize
+		if endIdx > n {
+			endIdx = n
+		}
+
 		wg.Add(1)
-		go func() {
+		go func(start, end int) {
 			defer wg.Done()
-			for idx := range workCh {
-				tokens, err := bp.EncodeOrdinarySequential(texts[idx])
+			for i := start; i < end; i++ {
+				tokens, err := bp.EncodeOrdinarySequential(texts[i])
 				if err != nil {
 					errOnce.Do(func() {
 						firstErr = err
 					})
 					return
 				}
-				results[idx] = tokens
+				results[i] = tokens
 			}
-		}()
+		}(startIdx, endIdx)
 	}
 	wg.Wait()
 
@@ -197,31 +201,35 @@ func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
 		numWorkers = n
 	}
 
-	workCh := make(chan int, n)
-	for i := 0; i < n; i++ {
-		workCh <- i
-	}
-	close(workCh)
-
+	chunkSize := (n + numWorkers - 1) / numWorkers
 	var wg sync.WaitGroup
 	var errOnce sync.Once
 	var firstErr error
 
 	for w := 0; w < numWorkers; w++ {
+		startIdx := w * chunkSize
+		if startIdx >= n {
+			break
+		}
+		endIdx := startIdx + chunkSize
+		if endIdx > n {
+			endIdx = n
+		}
+
 		wg.Add(1)
-		go func() {
+		go func(start, end int) {
 			defer wg.Done()
-			for idx := range workCh {
-				tokens, err := bp.EncodeOrdinarySequential(texts[idx])
+			for i := start; i < end; i++ {
+				tokens, err := bp.EncodeOrdinarySequential(texts[i])
 				if err != nil {
 					errOnce.Do(func() {
 						firstErr = err
 					})
 					return
 				}
-				results[idx] = len(tokens)
+				results[i] = len(tokens)
 			}
-		}()
+		}(startIdx, endIdx)
 	}
 	wg.Wait()
 

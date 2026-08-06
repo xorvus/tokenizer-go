@@ -9,6 +9,8 @@ import (
 	"github.com/xorvus/tokenizer-go"
 )
 
+var tokenSink [][]int
+
 func BenchmarkEncodingInFullLanguage(b *testing.B) {
 	data, err := os.ReadFile("/tmp/udhr.txt")
 	if err != nil {
@@ -27,6 +29,27 @@ func BenchmarkEncodingInFullLanguage(b *testing.B) {
 	}
 }
 
+func BenchmarkSequentialLoopUDHR(b *testing.B) {
+	data, err := os.ReadFile("/tmp/udhr.txt")
+	if err != nil {
+		b.Skip("udhr.txt not found in /tmp")
+	}
+
+	lines := strings.Split(string(data), "\n")
+	tok, err := tokenizer.ForModel("gpt-4o")
+	if err != nil {
+		b.Fatalf("failed loading tokenizer: %v", err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		results := make([][]int, len(lines))
+		for idx, line := range lines {
+			results[idx], _ = tok.EncodeOrdinary(line)
+		}
+		tokenSink = results
+	}
+}
+
 func BenchmarkEncodeOrdinaryBatchUDHR(b *testing.B) {
 	data, err := os.ReadFile("/tmp/udhr.txt")
 	if err != nil {
@@ -40,7 +63,7 @@ func BenchmarkEncodeOrdinaryBatchUDHR(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = tok.EncodeOrdinaryBatch(lines)
+		tokenSink, _ = tok.EncodeOrdinaryBatch(lines)
 	}
 }
 
