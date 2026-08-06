@@ -50,10 +50,10 @@ You can run benchmark in test folder.
 ### Benchmark result
 | name | time/op | os | cpu | text | times |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| tiktoken-go | 8795ns | macOS 13.2 | Apple M1 | UDHR | 100000 |
-| tiktoken | 8838ns | macOS 13.2 | Apple M1 | UDHR | 100000 |
+| tokenizer-go | 977 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 1000000 |
+| tiktoken | 1393 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 1000000 |
 
-It looks like the performance is almost the same.
+It looks like the performance is faster on short inputs.
 
 Maybe the difference is due to the difference in the performance of the machine.
 
@@ -61,14 +61,12 @@ Or maybe my benchmark method is not appropriate.
 
 If you have better benchmark method or if you want add your benchmark result, please feel free to submit a PR.
 
-For new o200k_base encoding, it seems slower than cl100k_base. tiktoken-go is slightly slower than tiktoken on the following benchmark.
+For full document encoding on UDHR corpus (3.277 MiB), tokenizer-go benchmark results:
 
 | name | encoding | time/op | os | cpu | text | times |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| tiktoken-go | o200k_base | 108522 ns | Ubuntu 22.04 | AMD Ryzen 9 5900HS | UDHR | 100000 |
-| tiktoken | o200k_base | 70198 ns | Ubuntu 22.04 | AMD Ryzen 9 5900HS | UDHR | 100000 |
-| tiktoken-go | cl100k_base | 94502 ns | Ubuntu 22.04 | AMD Ryzen 9 5900HS | UDHR | 100000 |
-| tiktoken | cl100k_base | 54642 ns | Ubuntu 22.04 | AMD Ryzen 9 5900HS | UDHR | 100000 |
+| tokenizer-go | cl100k_base | 187.14 ms | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
+| tiktoken | cl100k_base | 310.57 ms | macOS arm64 | Apple M4 Pro | UDHR | 100000 |
 
 ## License
 MIT License. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
