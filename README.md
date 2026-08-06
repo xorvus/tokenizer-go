@@ -7,6 +7,8 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 - **Blazing Fast**: Outperforms official OpenAI `tiktoken` (Rust native) in single-thread and multi-core benchmarks.
 - **Pure Go**: 100% Go implementation (`zero CGO`) with embedded vocabulary files (`//go:embed`).
 - **OpenAI Parity & Harmony**: Supports `cl100k_base`, `o200k_base`, and `o200k_harmony` with model mappings for `gpt-4o`, `gpt-4.5`, `gpt-oss-*`, `o1`, `o3`, etc.
+- **Production Control**: Context cancellation APIs (`EncodeContext`, `CountContext`, `EncodeOrdinaryBatchContext`) for AI Gateways with zero hot-path overhead.
+- **Resource Options**: Configurable worker pools and byte thresholds via `tok.WithOptions(Options{...})`.
 - **Custom Encodings**: Create custom BPE tokenizers safely using `tokenizer.New(tokenizer.Config{...})` with strict validation.
 - **API Parity**: Includes `EncodeSingleToken`, `DecodeSingleTokenBytes`, `TokenByteValues`, `DecodeWithOffsets`, `DecodeBatch`, and `DecodeBytesBatch`.
 - **Profile-Guided Optimization (PGO)**: Includes built-in `default.pgo` profiles for compiler inlining speedups.
@@ -27,7 +29,7 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 ## Installation
 
 ```bash
-go get github.com/xorvus/tokenizer-go@v0.8.0
+go get github.com/xorvus/tokenizer-go@v0.9.0
 ```
 
 ## Quick Start
@@ -36,8 +38,10 @@ go get github.com/xorvus/tokenizer-go@v0.8.0
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/xorvus/tokenizer-go"
 )
@@ -49,21 +53,22 @@ func main() {
 		log.Fatalf("failed loading model: %v", err)
 	}
 
-	tokens, _ := tok.EncodeOrdinary("Hello, world!")
-	fmt.Printf("Tokens: %v (Count: %d)\n", tokens, len(tokens))
+	// 2. Production Context Cancellation API
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
 
-	// 2. Custom Tokenizer Construction
-	customTok, err := tokenizer.New(tokenizer.Config{
-		Name:    "my-custom-bpe",
-		Pattern: `\p{L}+|\p{N}+|\s+`,
-		MergeableRanks: map[string]int{
-			"a": 0, "b": 1, "c": 2, // ... all 0-255 bytes required
-		},
-		SpecialTokens: map[string]int{
-			"<|END|>": 256,
-		},
+	tokens, err := tok.EncodeContext(ctx, "Hello, world!")
+	if err != nil {
+		log.Fatalf("tokenization canceled/timed out: %v", err)
+	}
+	fmt.Printf("Tokens: %v\n", tokens)
+
+	// 3. Resource Control Options for AI Gateway / Production Server
+	gatewayTok := tok.WithOptions(tokenizer.Options{
+		MaxWorkers:            4,
+		ParallelByteThreshold: 8192,
 	})
-	_ = customTok
+	_ = gatewayTok
 }
 ```
 

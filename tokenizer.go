@@ -1,6 +1,7 @@
 package tokenizer
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -18,7 +19,8 @@ type Config struct {
 }
 
 type Tokenizer struct {
-	core *bpe.CoreBPE
+	core    *bpe.CoreBPE
+	options Options
 }
 
 func validateAndCopyConfig(cfg Config) (map[string]int, []string, map[string]int, error) {
@@ -85,6 +87,13 @@ func validateAndCopyConfig(cfg Config) (map[string]int, []string, map[string]int
 	return ranksCopy, decoderSlice, specialCopy, nil
 }
 
+func newTokenizer(core *bpe.CoreBPE) *Tokenizer {
+	return &Tokenizer{
+		core:    core,
+		options: DefaultOptions(),
+	}
+}
+
 func New(config Config) (*Tokenizer, error) {
 	ranks, decoder, special, err := validateAndCopyConfig(config)
 	if err != nil {
@@ -94,7 +103,7 @@ func New(config Config) (*Tokenizer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Tokenizer{core: core}, nil
+	return newTokenizer(core), nil
 }
 
 func NewFromVocabulary(r io.Reader, pattern string, special map[string]int) (*Tokenizer, error) {
@@ -111,7 +120,7 @@ func NewFromVocabulary(r io.Reader, pattern string, special map[string]int) (*To
 	if err != nil {
 		return nil, err
 	}
-	return &Tokenizer{core: core}, nil
+	return newTokenizer(core), nil
 }
 
 func NewFromFile(path string, pattern string, special map[string]int) (*Tokenizer, error) {
@@ -156,6 +165,25 @@ func EncodingForModel(model string) (Encoding, error) {
 	return "", fmt.Errorf("%w: %s", ErrUnknownModel, model)
 }
 
+func (t *Tokenizer) WithOptions(opts Options) *Tokenizer {
+	return &Tokenizer{
+		core:    t.core,
+		options: sanitizeOptions(opts),
+	}
+}
+
+func checkContext(ctx context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
+}
+
 func (t *Tokenizer) Encode(text string) ([]int, error) {
 	tokens, _, err := t.core.EncodeNative(text, nil)
 	return tokens, err
@@ -167,6 +195,60 @@ func (t *Tokenizer) EncodeOrdinary(text string) ([]int, error) {
 
 func (t *Tokenizer) EncodeOrdinaryBatch(texts []string) ([][]int, error) {
 	return t.core.EncodeOrdinaryBatchNative(texts)
+}
+
+func (t *Tokenizer) EncodeContext(ctx context.Context, text string) ([]int, error) {
+	if err := checkContext(ctx); err != nil {
+		return nil, err
+	}
+	return t.EncodeOrdinary(text)
+}
+
+func (t *Tokenizer) CountContext(ctx context.Context, text string) (int, error) {
+	if err := checkContext(ctx); err != nil {
+		return 0, err
+	}
+	return t.Count(text)
+}
+
+func (t *Tokenizer) EncodeOrdinaryBatchContext(ctx context.Context, texts []string) ([][]int, error) {
+	if err := checkContext(ctx); err != nil {
+		return nil, err
+	}
+	res := make([][]int, len(texts))
+	for i, txt := range texts {
+		if i%10 == 0 {
+			if err := checkContext(ctx); err != nil {
+				return nil, err
+			}
+		}
+		tokens, err := t.EncodeOrdinary(txt)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = tokens
+	}
+	return res, nil
+}
+
+func (t *Tokenizer) CountOrdinaryBatchContext(ctx context.Context, texts []string) ([]int, error) {
+	if err := checkContext(ctx); err != nil {
+		return nil, err
+	}
+	res := make([]int, len(texts))
+	for i, txt := range texts {
+		if i%10 == 0 {
+			if err := checkContext(ctx); err != nil {
+				return nil, err
+			}
+		}
+		count, err := t.Count(txt)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = count
+	}
+	return res, nil
 }
 
 func (t *Tokenizer) EncodeSingleToken(text string) (int, error) {
