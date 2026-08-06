@@ -1,10 +1,11 @@
-# tokenizer-go (v0.4.0)
+# tokenizer-go (v0.5.0)
 
 Fast, thread-safe Byte Pair Encoding (BPE) tokenizer for OpenAI models in Pure Go.
 
 ## Features
 - **Official Encodings**: Full support for `cl100k_base` and `o200k_base`.
 - **Built-in Model Mappings**: Mappings for OpenAI model families (`o1`, `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `text-embedding-3`, etc.).
+- **Batch Processing**: Bounded multi-worker batch tokenization & counting (`EncodeOrdinaryBatch` & `CountOrdinaryBatch`).
 - **Offline & Embedded**: Embedded BPE vocabularies via `//go:embed` for zero-network execution.
 - **Thread-Safe**: Safe for concurrent use across multiple goroutines (`go test -race` verified).
 - **High Performance**: Index-only pre-tokenization matcher, 2-byte lookup table, ASCII offset bypass, and ordered piece-boundary parallel BPE.
@@ -36,11 +37,17 @@ func main() {
 	}
 	fmt.Println("Tokens:", tokens)
 
-	text, err := tok.Decode(tokens)
-	if err != nil {
-		panic(err)
+	// Batch Processing
+	texts := []string{
+		"Hello world",
+		"How are you?",
+		"Independent prompt line",
 	}
-	fmt.Println("Decoded:", text)
+
+	counts, err := tok.CountOrdinaryBatch(texts)
+	if err == nil {
+		fmt.Println("Batch Token Counts:", counts)
+	}
 }
 ```
 

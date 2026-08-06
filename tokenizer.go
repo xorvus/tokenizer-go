@@ -80,12 +80,20 @@ func (t *Tokenizer) EncodeOrdinary(text string) ([]int, error) {
 	return t.core.EncodeOrdinaryNative(text)
 }
 
+func (t *Tokenizer) EncodeOrdinaryBatch(texts []string) ([][]int, error) {
+	return t.core.EncodeOrdinaryBatchNative(texts)
+}
+
 func (t *Tokenizer) Count(text string) (int, error) {
 	tokens, err := t.EncodeOrdinary(text)
 	if err != nil {
 		return 0, err
 	}
 	return len(tokens), nil
+}
+
+func (t *Tokenizer) CountOrdinaryBatch(texts []string) ([]int, error) {
+	return t.core.CountOrdinaryBatchNative(texts)
 }
 
 func (t *Tokenizer) Decode(tokens []int) (string, error) {

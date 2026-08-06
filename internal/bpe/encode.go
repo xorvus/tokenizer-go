@@ -100,6 +100,136 @@ func (it *MatchIterator) Next(text string) (int, int, bool, error) {
 }
 
 const maxParallelWorkers = 4
+const maxBatchWorkers = 4
+
+func (bp *CoreBPE) EncodeOrdinarySequential(text string) ([]int, error) {
+	indices, err := bp.Regex.FindAllStringIndex(text, -1)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]int, 0, (len(text)+2)/3)
+	for _, pair := range indices {
+		piece := text[pair[0]:pair[1]]
+		ret = bp.EncodePieceTo(piece, ret)
+	}
+	return ret, nil
+}
+
+func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
+	n := len(texts)
+	if n == 0 {
+		return [][]int{}, nil
+	}
+
+	results := make([][]int, n)
+	if n == 1 {
+		tokens, err := bp.EncodeOrdinarySequential(texts[0])
+		if err != nil {
+			return nil, err
+		}
+		results[0] = tokens
+		return results, nil
+	}
+
+	numWorkers := runtime.GOMAXPROCS(0)
+	if numWorkers > maxBatchWorkers {
+		numWorkers = maxBatchWorkers
+	}
+	if numWorkers > n {
+		numWorkers = n
+	}
+
+	workCh := make(chan int, n)
+	for i := 0; i < n; i++ {
+		workCh <- i
+	}
+	close(workCh)
+
+	var wg sync.WaitGroup
+	var errOnce sync.Once
+	var firstErr error
+
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for idx := range workCh {
+				tokens, err := bp.EncodeOrdinarySequential(texts[idx])
+				if err != nil {
+					errOnce.Do(func() {
+						firstErr = err
+					})
+					return
+				}
+				results[idx] = tokens
+			}
+		}()
+	}
+	wg.Wait()
+
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	return results, nil
+}
+
+func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
+	n := len(texts)
+	if n == 0 {
+		return []int{}, nil
+	}
+
+	results := make([]int, n)
+	if n == 1 {
+		tokens, err := bp.EncodeOrdinarySequential(texts[0])
+		if err != nil {
+			return nil, err
+		}
+		results[0] = len(tokens)
+		return results, nil
+	}
+
+	numWorkers := runtime.GOMAXPROCS(0)
+	if numWorkers > maxBatchWorkers {
+		numWorkers = maxBatchWorkers
+	}
+	if numWorkers > n {
+		numWorkers = n
+	}
+
+	workCh := make(chan int, n)
+	for i := 0; i < n; i++ {
+		workCh <- i
+	}
+	close(workCh)
+
+	var wg sync.WaitGroup
+	var errOnce sync.Once
+	var firstErr error
+
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for idx := range workCh {
+				tokens, err := bp.EncodeOrdinarySequential(texts[idx])
+				if err != nil {
+					errOnce.Do(func() {
+						firstErr = err
+					})
+					return
+				}
+				results[idx] = len(tokens)
+			}
+		}()
+	}
+	wg.Wait()
+
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	return results, nil
+}
 
 func (bp *CoreBPE) EncodeSubTextMatches(subText string, ret []int) ([]int, int, error) {
 	indices, err := bp.Regex.FindAllStringIndex(subText, -1)
@@ -186,6 +316,7 @@ func (bp *CoreBPE) EncodeNative(text string, allowed map[string]any) ([]int, int
 	}
 	return ret, lastLen, nil
 }
+
 func (bp *CoreBPE) EncodeOrdinaryNative(text string) ([]int, error) {
 	ret := make([]int, 0, (len(text)+2)/3)
 	ret, _, err := bp.EncodeSubTextMatches(text, ret)
