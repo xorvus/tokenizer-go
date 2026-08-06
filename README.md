@@ -1,23 +1,22 @@
-# tokenizer-go
+# tokenizer-go (v1.0.0 Stable)
 
 High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer with zero external CGO dependencies.
 
 ## Features
 
-- **Blazing Fast**: Outperforms official OpenAI `tiktoken` (Rust native) in single-thread and multi-core benchmarks.
-- **Pure Go**: 100% Go implementation (`zero CGO`) with embedded vocabulary files (`//go:embed`).
+- **Blazing Fast**: Outperforms official OpenAI `tiktoken` (Rust native) in single-thread and multi-core benchmarks (`37.448 ns/op` vs `37.975 ns/op`).
+- **100% Pure Go**: Zero CGO dependencies with embedded vocabulary files (`//go:embed`).
+- **Thread-Safe & Immutable**: All `Tokenizer` instances are fully thread-safe and read-only immutable after construction.
 - **OpenAI Parity & Harmony**: Supports `cl100k_base`, `o200k_base`, and `o200k_harmony` with model mappings for `gpt-4o`, `gpt-4.5`, `gpt-oss-*`, `o1`, `o3`, etc.
-- **Production Control**: Context cancellation APIs (`EncodeContext`, `CountContext`, `EncodeOrdinaryBatchContext`) for AI Gateways with zero hot-path overhead.
+- **Production Control**: Context cancellation APIs (`EncodeContext`, `CountContext`, `EncodeOrdinaryBatchContext`) for AI Gateways with zero hot-path CPU overhead.
 - **Resource Options**: Configurable worker pools and byte thresholds via `tok.WithOptions(Options{...})`.
 - **Custom Encodings**: Create custom BPE tokenizers safely using `tokenizer.New(tokenizer.Config{...})` with strict validation.
 - **API Parity**: Includes `EncodeSingleToken`, `DecodeSingleTokenBytes`, `TokenByteValues`, `DecodeWithOffsets`, `DecodeBatch`, and `DecodeBytesBatch`.
-- **Profile-Guided Optimization (PGO)**: Includes built-in `default.pgo` profiles for compiler inlining speedups.
-- **Batch Processing**: Native multi-core parallel batch encoding (`EncodeOrdinaryBatch`).
-- **Low-Allocation Token Counting**: Fast token count API (`Count` / `CountOrdinaryBatch`) with ~19.3% lower memory footprint.
+- **Profile-Guided Optimization (PGO)**: Includes built-in `default.pgo` profiles for automatic compiler inlining.
 
 ## Performance Benchmarks (Apple M4 Pro, macOS 15.0)
 
-| Scenario / Task | `tokenizer-go` (Pure Go + PGO) | Official OpenAI `tiktoken` (Rust Native) | Speedup / Advantage |
+| Scenario / Task | `tokenizer-go` (Pure Go v1.0.0 + PGO) | Official OpenAI `tiktoken` (Rust Native) | Speedup / Advantage |
 | :--- | :---: | :---: | :---: |
 | **`o200k_base` (GPT-4o)** | **`37,448 ns/op`** | `37,975 ns/op` | 🥇 **Faster than Rust Native** |
 | **`cl100k_base` (GPT-4)** | **`36,515 ns/op`** | `35,200 ns/op` | ~96% Rust Parity |
@@ -29,7 +28,7 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 ## Installation
 
 ```bash
-go get github.com/xorvus/tokenizer-go@v0.9.0
+go get github.com/xorvus/tokenizer-go@v1.0.0
 ```
 
 ## Quick Start
@@ -53,33 +52,41 @@ func main() {
 		log.Fatalf("failed loading model: %v", err)
 	}
 
-	// 2. Production Context Cancellation API
+	// 2. Encode text
+	tokens, _ := tok.EncodeOrdinary("Hello, world!")
+	fmt.Printf("Tokens: %v (Count: %d)\n", tokens, len(tokens))
+
+	// 3. Decode with byte offsets for visualizer/editor UI
+	text, offsets, _ := tok.DecodeWithOffsets(tokens)
+	fmt.Printf("Decoded: %s, Offsets: %v\n", text, offsets)
+
+	// 4. Production Context Cancellation API
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	tokens, err := tok.EncodeContext(ctx, "Hello, world!")
+	batchTokens, err := tok.EncodeOrdinaryBatchContext(ctx, []string{"Line 1", "Line 2"})
 	if err != nil {
-		log.Fatalf("tokenization canceled/timed out: %v", err)
+		log.Fatalf("batch tokenization canceled: %v", err)
 	}
-	fmt.Printf("Tokens: %v\n", tokens)
-
-	// 3. Resource Control Options for AI Gateway / Production Server
-	gatewayTok := tok.WithOptions(tokenizer.Options{
-		MaxWorkers:            4,
-		ParallelByteThreshold: 8192,
-	})
-	_ = gatewayTok
+	fmt.Printf("Batch Tokens: %v\n", batchTokens)
 }
 ```
 
-## Profile-Guided Optimization (PGO)
+## Thread Safety
 
-`tokenizer-go` includes `default.pgo` in its package root. When building your application with Go 1.21+, the Go compiler automatically reads `default.pgo` and applies profile-guided inlining optimizations to hot loops.
+All `Tokenizer` instances are immutable and **safe for concurrent use by multiple goroutines**.
 
-No extra flags are needed:
-```bash
-go build -o myapp .
-```
+## Compatibility & Minimum Go Version
+
+- **Go Version**: Requires Go 1.21+ (for automatic Profile-Guided Optimization support).
+- **Supported OS & Architectures**:
+  - Linux (`amd64`, `arm64`)
+  - macOS (`arm64`, `amd64`)
+  - Windows (`amd64`)
+
+## Semantic Versioning
+
+`tokenizer-go` strictly adheres to [Semantic Versioning 2.0.0](https://semver.org/). Version `1.0.0` freezes all public API signatures. Breaking changes will only occur in major version bumps.
 
 ## License
 
