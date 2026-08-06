@@ -1,0 +1,34 @@
+[
+  {
+    "text": "",
+    "tokens": []
+  },
+  {
+    "text": "hello",
+    "tokens": [15339]
+  },
+  {
+    "text": "hello world",
+    "tokens": [15339, 1917]
+  },
+  {
+    "text": "Hello, world!",
+    "tokens": [9906, 11, 1917, 0]
+  },
+  {
+    "text": "你好世界",
+    "tokens": [57668, 53901, 3922, 3574]
+  },
+  {
+    "text": "こんにちは",
+    "tokens": [24388, 77098, 20387]
+  },
+  {
+    "text": "😀",
+    "tokens": [9468, 238]
+  },
+  {
+    "text": "hello\nworld",
+    "tokens": [15339, 198, 1917]
+  }
+]
