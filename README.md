@@ -50,8 +50,8 @@ You can run benchmark in test folder.
 ### Benchmark result
 | name | time/op | os | cpu | text | times |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| tokenizer-go | 977 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 1000000 |
-| tiktoken | 1393 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 1000000 |
+| tokenizer-go | 977 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 100000 |
+| tiktoken | 1393 ns | macOS arm64 | Apple M4 Pro | Short ASCII | 100000 |
 
 It looks like the performance is faster on short inputs.
 
