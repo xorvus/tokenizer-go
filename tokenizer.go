@@ -64,8 +64,20 @@ func (t *Tokenizer) DecodeBytes(tokens []int) ([]byte, error) {
 }
 
 func GetEncoding(name Encoding) (*Tokenizer, error) {
-	if name != CL100KBase {
+	switch name {
+	case CL100KBase:
+		return GetEmbeddedCL100K()
+	case O200KBase:
+		return GetEmbeddedO200K()
+	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownEncoding, name)
 	}
-	return nil, fmt.Errorf("use NewFromFile or NewFromVocabulary with cl100k BPE file")
+}
+
+func EncodingForModel(modelName string) (*Tokenizer, error) {
+	encName, err := openai.EncodingNameForModel(modelName)
+	if err != nil {
+		return nil, err
+	}
+	return GetEncoding(Encoding(encName))
 }

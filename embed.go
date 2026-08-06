@@ -10,6 +10,13 @@ import (
 //go:embed testdata/cl100k_base.tiktoken
 var cl100kVocab string
 
+//go:embed testdata/o200k_base.tiktoken
+var o200kVocab string
+
 func GetEmbeddedCL100K() (*Tokenizer, error) {
 	return NewFromVocabulary(strings.NewReader(cl100kVocab), openai.PatternCL100K, openai.SpecialTokensCL100K())
+}
+
+func GetEmbeddedO200K() (*Tokenizer, error) {
+	return NewFromVocabulary(strings.NewReader(o200kVocab), openai.PatternO200K, openai.SpecialTokensO200K())
 }

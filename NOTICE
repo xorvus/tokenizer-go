@@ -1,0 +1,8 @@
+tokenizer-go
+Copyright (c) 2026
+
+This product includes software developed by OpenAI (https://github.com/openai/tiktoken),
+licensed under the MIT License.
+
+This product includes embedded vocabulary ranks derived from OpenAI's public cl100k_base
+and o200k_base byte-pair encoding files.
