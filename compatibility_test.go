@@ -38,11 +38,11 @@ func loadGoldenCases(t *testing.T, path string) []TestCase {
 }
 
 func TestRealCL100KCompatibility(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("testdata/cl100k_base.tiktoken", openai.PatternCL100K, openai.SpecialTokensCL100K())
+	tok, err := tokenizer.NewFromFile("test/cl100k_base.tiktoken", openai.PatternCL100K, openai.SpecialTokensCL100K())
 	if err != nil {
 		t.Fatalf("failed loading cl100k_base.tiktoken: %v", err)
 	}
-	cases := loadGoldenCases(t, "testdata/cl100k_base.json")
+	cases := loadGoldenCases(t, "test/cl100k_base.json")
 	for _, tc := range cases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {

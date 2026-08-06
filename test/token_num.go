@@ -47,10 +47,9 @@ func ReadTestFile() (textList []string, modelList []string, encodingList []strin
 
 // getTokenByModel
 func getTokenByModel(text string, model string) (num_tokens int) {
-
 	tkm, err := tokenizer.ForModel(model)
 	if err != nil {
-		err = fmt.Errorf(": %v", err)
+		log.Printf("ForModel error: %v", err)
 		return
 	}
 
@@ -61,10 +60,9 @@ func getTokenByModel(text string, model string) (num_tokens int) {
 
 // getTokenByEncoding
 func getTokenByEncoding(text string, encoding string) (num_tokens int) {
-
 	tke, err := tokenizer.GetEncoding(tokenizer.Encoding(encoding))
 	if err != nil {
-		err = fmt.Errorf(": %v", err)
+		log.Printf("GetEncoding error: %v", err)
 		return
 	}
 

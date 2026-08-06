@@ -34,5 +34,5 @@ def generate_fixture(encoding_name, output_path):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
-    generate_fixture("cl100k_base", "testdata/cl100k_base.json")
-    generate_fixture("o200k_base", "testdata/o200k_base.json")
+    generate_fixture("cl100k_base", "test/cl100k_base.json")
+    generate_fixture("o200k_base", "test/o200k_base.json")

@@ -7,10 +7,10 @@ import (
 	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
-//go:embed testdata/cl100k_base.tiktoken
+//go:embed test/cl100k_base.tiktoken
 var cl100kVocab string
 
-//go:embed testdata/o200k_base.tiktoken
+//go:embed test/o200k_base.tiktoken
 var o200kVocab string
 
 func getEmbeddedCL100K() (*Tokenizer, error) {

@@ -9,11 +9,11 @@ import (
 )
 
 func TestO200KBaseEncodeParity(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("testdata/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
+	tok, err := tokenizer.NewFromFile("test/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
 	if err != nil {
 		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
 	}
-	cases := loadGoldenCases(t, "testdata/o200k_base.json")
+	cases := loadGoldenCases(t, "test/o200k_base.json")
 	for _, tc := range cases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {
@@ -27,11 +27,11 @@ func TestO200KBaseEncodeParity(t *testing.T) {
 }
 
 func TestO200KBaseDecodeRoundTrip(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("testdata/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
+	tok, err := tokenizer.NewFromFile("test/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
 	if err != nil {
 		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
 	}
-	cases := loadGoldenCases(t, "testdata/o200k_base.json")
+	cases := loadGoldenCases(t, "test/o200k_base.json")
 	for _, tc := range cases {
 		tokens, err := tok.EncodeOrdinary(tc.Text)
 		if err != nil {
@@ -49,7 +49,7 @@ func TestO200KBaseDecodeRoundTrip(t *testing.T) {
 }
 
 func TestO200KBaseSpecialTokens(t *testing.T) {
-	tok, err := tokenizer.NewFromFile("testdata/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
+	tok, err := tokenizer.NewFromFile("test/o200k_base.tiktoken", openai.PatternO200K, openai.SpecialTokensO200K())
 	if err != nil {
 		t.Fatalf("failed loading o200k_base.tiktoken: %v", err)
 	}
