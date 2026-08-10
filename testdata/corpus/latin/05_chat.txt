@@ -1,0 +1,5 @@
+Customer: I've been trying to reset my password for an hour and the link never arrives.
+Agent: I'm sorry about the trouble. Can you confirm the email address on the account, and check whether the message landed in your spam folder?
+Customer: Yes, checked spam, nothing there. The address is j.doe at gmail.
+Agent: Thanks. I've triggered a fresh reset and marked your account for delivery checks. You should receive it within five minutes.
+Customer: Got it this time. Thanks for the help.

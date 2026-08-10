@@ -10,8 +10,12 @@ type Bucket string
 const (
 	// BucketLatin is Latin-script prose (the common case).
 	BucketLatin Bucket = "latin"
-	// BucketCJK is Chinese, Japanese, or Korean text.
-	BucketCJK Bucket = "cjk"
+	// BucketZh is Chinese (Han-script only) text.
+	BucketZh Bucket = "zh"
+	// BucketJa is Japanese (Han plus kana) text.
+	BucketJa Bucket = "ja"
+	// BucketKo is Korean (Hangul) text.
+	BucketKo Bucket = "ko"
 	// BucketCode is source code, JSON, markup, or other punctuation-dense text.
 	BucketCode Bucket = "code"
 	// BucketOther is everything unclassified. Every Profile must define a
@@ -34,13 +38,19 @@ func Classify(text string) Bucket {
 		// negligible noise at this sample size.
 	}
 
-	var cjk, letters, latinLetters, punct, total int
+	var cjk, kana, hangul, letters, latinLetters, punct, total int
 	for _, r := range sample {
 		total++
 		switch {
 		case isCJK(r):
 			cjk++
 			letters++
+			switch {
+			case unicode.Is(unicode.Hiragana, r) || unicode.Is(unicode.Katakana, r):
+				kana++
+			case unicode.Is(unicode.Hangul, r):
+				hangul++
+			}
 		case unicode.IsLetter(r):
 			letters++
 			if isLatin(r) {
@@ -56,7 +66,16 @@ func Classify(text string) Bucket {
 
 	switch {
 	case pct(cjk, total) >= 20:
-		return BucketCJK
+		switch {
+		case hangul > 0:
+			// Hangul presence marks Korean even mixed with Han.
+			return BucketKo
+		case kana > 0:
+			// Japanese mixes Han kanji with kana; kana presence marks it.
+			return BucketJa
+		default:
+			return BucketZh
+		}
 	case pct(punct, total) >= 15:
 		// Dense braces/semicolons/quotes/operators signal code or markup.
 		return BucketCode

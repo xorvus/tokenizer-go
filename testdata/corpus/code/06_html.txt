@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+</head>
+<body>
+  <main class="container">
+    <h1>Overview</h1>
+    <section class="card" data-id="42">
+      <h2>Revenue</h2>
+      <p class="metric">$12,480</p>
+      <button onclick="refresh()">Refresh</button>
+    </section>
+  </main>
+</body>
+</html>

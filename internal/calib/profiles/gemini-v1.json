@@ -5,41 +5,57 @@
   "base_tokenizer": "o200k_base",
   "ratios": {
     "latin": {
-      "mean": 1.0081898793426254,
-      "p95": 1.0113636363636365,
-      "max": 1.0113636363636365,
-      "mean_abs_error_pct": 0.29069767441860467,
-      "p95_abs_error_pct": 1.1627906976744187,
-      "max_abs_error_pct": 1.1627906976744187
+      "mean": 1.0040925473023932,
+      "p95": 1.0714285714285714,
+      "max": 1.1067961165048543,
+      "mean_abs_error_pct": 3.174547724034802,
+      "p95_abs_error_pct": 9.649122807017543,
+      "max_abs_error_pct": 10.81081081081081
     },
-    "cjk": {
-      "mean": 0.7837643606662884,
-      "p95": 0.9134615384615384,
-      "max": 0.9134615384615384,
-      "mean_abs_error_pct": 12.810305906610498,
-      "p95_abs_error_pct": 22.61904761904762,
-      "max_abs_error_pct": 22.61904761904762
+    "zh": {
+      "mean": 0.8948872200663219,
+      "p95": 0.9587628865979382,
+      "max": 0.9587628865979382,
+      "mean_abs_error_pct": 5.890520636289067,
+      "p95_abs_error_pct": 12.76595744680851,
+      "max_abs_error_pct": 12.76595744680851
+    },
+    "ja": {
+      "mean": 0.7014761507080576,
+      "p95": 0.7619047619047619,
+      "max": 0.7619047619047619,
+      "mean_abs_error_pct": 6.5250043316295585,
+      "p95_abs_error_pct": 9.523809523809524,
+      "max_abs_error_pct": 9.523809523809524
+    },
+    "ko": {
+      "mean": 0.9428418803418803,
+      "p95": 0.9722222222222222,
+      "max": 0.9722222222222222,
+      "mean_abs_error_pct": 3.007518796992481,
+      "p95_abs_error_pct": 3.1578947368421053,
+      "max_abs_error_pct": 3.1578947368421053
     },
     "code": {
-      "mean": 1.254647313470843,
+      "mean": 1.2150867076506355,
       "p95": 1.3214285714285714,
       "max": 1.3214285714285714,
-      "mean_abs_error_pct": 6.105295578979789,
-      "p95_abs_error_pct": 9.401709401709402,
-      "max_abs_error_pct": 9.401709401709402
+      "mean_abs_error_pct": 4.439706992760161,
+      "p95_abs_error_pct": 12.056737588652481,
+      "max_abs_error_pct": 12.056737588652481
     },
     "other": {
-      "mean": 0.9917206711767178,
-      "p95": 1.0404040404040404,
-      "max": 1.0404040404040404,
-      "mean_abs_error_pct": 2.9906719969541213,
-      "p95_abs_error_pct": 4.854368932038835,
-      "max_abs_error_pct": 4.854368932038835
+      "mean": 1.007673313240186,
+      "p95": 1.3111111111111111,
+      "max": 1.3111111111111111,
+      "mean_abs_error_pct": 14.972694533800688,
+      "p95_abs_error_pct": 38.666666666666664,
+      "max_abs_error_pct": 38.666666666666664
     }
   },
-  "sample_count": 13,
-  "corpus_sha256": "30e5fc71f2fdd68ed5f46f04eb32acb8760b22ed519eb1da29faa80e53fb4ac2",
-  "generated_at": "2026-08-10T06:03:03Z",
+  "sample_count": 40,
+  "corpus_sha256": "70e54c053aa3b4aae35c18b604ce854b18e8921627dc43450256f043988e9729",
+  "generated_at": "2026-08-10T07:16:24Z",
   "tool_version": "calibrate.py/1",
-  "notes": "Calibrated from 13 samples across 4 buckets. Regenerate with: python3 scripts/calibrate.py --provider gemini --target-model gemini-2.0-flash --base-tokenizer o200k_base --corpus testdata/corpus --out internal/calib/profiles/gemini-v1.json --profile-id gemini-v1"
+  "notes": "Calibrated from 40 samples across 6 buckets. Regenerate with: python3 scripts/calibrate.py --provider gemini --target-model gemini-2.0-flash --base-tokenizer o200k_base --corpus testdata/corpus --out internal/calib/profiles/gemini-v1.json --profile-id gemini-v1"
 }

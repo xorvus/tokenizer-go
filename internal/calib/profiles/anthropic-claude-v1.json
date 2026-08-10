@@ -5,7 +5,9 @@
   "base_tokenizer": "o200k_base",
   "ratios": {
     "latin": { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
-    "cjk":   { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "zh":    { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "ja":    { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "ko":    { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
     "code":  { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
     "other": { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 }
   },

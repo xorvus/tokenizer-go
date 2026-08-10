@@ -1,0 +1,16 @@
+#include <stdio.h>
+#include <string.h>
+
+#define BUFFER_SIZE 256
+
+int main(void) {
+    char input[BUFFER_SIZE];
+    printf("Enter a word: ");
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        return 1;
+    }
+    input[strcspn(input, "\n")] = '\0';
+    int len = (int)strlen(input);
+    printf("You entered '%s' (%d chars)\n", input, len);
+    return 0;
+}

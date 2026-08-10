@@ -8,7 +8,9 @@ type Bucket = calib.Bucket
 
 const (
 	BucketLatin Bucket = calib.BucketLatin
-	BucketCJK   Bucket = calib.BucketCJK
+	BucketZh    Bucket = calib.BucketZh
+	BucketJa    Bucket = calib.BucketJa
+	BucketKo    Bucket = calib.BucketKo
 	BucketCode  Bucket = calib.BucketCode
 	BucketOther Bucket = calib.BucketOther
 )

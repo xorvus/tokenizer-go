@@ -10,9 +10,9 @@ func TestClassifyBuckets(t *testing.T) {
 	}{
 		{"empty", "", BucketLatin},
 		{"english_prose", "The quick brown fox jumps over the lazy dog near the riverbank.", BucketLatin},
-		{"chinese", "你好世界，这是一个中文测试句子，用来验证分类器的行为是否正确。", BucketCJK},
-		{"japanese", "こんにちは世界、これは日本語のテスト文です。分類器が正しく動作するか確認します。", BucketCJK},
-		{"korean", "안녕하세요 세계, 이것은 한국어 테스트 문장입니다. 분류기가 올바르게 작동하는지 확인합니다.", BucketCJK},
+		{"chinese", "你好世界，这是一个中文测试句子，用来验证分类器的行为是否正确。", BucketZh},
+		{"japanese", "こんにちは世界、これは日本語のテスト文です。分類器が正しく動作するか確認します。", BucketJa},
+		{"korean", "안녕하세요 세계, 이것은 한국어 테스트 문장입니다. 분류기가 올바르게 작동하는지 확인합니다.", BucketKo},
 		{"code", `func main() { fmt.Println("hi"); if x == 1 { y := []int{1,2,3}; } }`, BucketCode},
 		{"json", `{"a": 1, "b": [1,2,3], "c": {"d": true, "e": null}}`, BucketCode},
 	}
@@ -51,8 +51,8 @@ func TestProfileRatioForFallsBackToOther(t *testing.T) {
 	if r := p.RatioFor(BucketLatin); r.Mean != 1.1 {
 		t.Errorf("RatioFor(Latin).Mean = %v, want 1.1", r.Mean)
 	}
-	if r := p.RatioFor(BucketCJK); r.Mean != 1.5 {
-		t.Errorf("RatioFor(CJK) with no explicit entry should fall back to Other: got %v, want 1.5", r.Mean)
+	if r := p.RatioFor(BucketJa); r.Mean != 1.5 {
+		t.Errorf("RatioFor(JA) with no explicit entry should fall back to Other: got %v, want 1.5", r.Mean)
 	}
 }
 

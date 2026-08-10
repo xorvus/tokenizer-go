@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${1:-$HOME/apps/example}"
+LOG_FILE="${APP_DIR}/server.log"
+
+if [[ ! -d "$APP_DIR" ]]; then
+  echo "Error: directory $APP_DIR does not exist" >&2
+  exit 1
+fi
+
+cd "$APP_DIR"
+nohup ./server --config config.yaml >> "$LOG_FILE" 2>&1 &
+echo "Server started with PID $!"

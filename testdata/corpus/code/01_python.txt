@@ -1,0 +1,16 @@
+import json
+from collections import Counter
+
+def word_frequencies(path):
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    words = text.lower().split()
+    return Counter(words)
+
+def main():
+    counts = word_frequencies("sample.txt")
+    for word, n in counts.most_common(10):
+        print(f"{word}: {n}")
+
+if __name__ == "__main__":
+    main()

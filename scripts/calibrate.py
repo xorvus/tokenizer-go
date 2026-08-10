@@ -19,7 +19,9 @@ The corpus directory must contain one .txt file per calibration sample,
 organized in subdirectories named after the Bucket they belong to:
 
     testdata/corpus/latin/*.txt
-    testdata/corpus/cjk/*.txt
+    testdata/corpus/zh/*.txt
+    testdata/corpus/ja/*.txt
+    testdata/corpus/ko/*.txt
     testdata/corpus/code/*.txt
     testdata/corpus/other/*.txt
 
@@ -58,7 +60,7 @@ import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-BUCKETS = ("latin", "cjk", "code", "other")
+BUCKETS = ("latin", "zh", "ja", "ko", "code", "other")
 
 
 @dataclasses.dataclass

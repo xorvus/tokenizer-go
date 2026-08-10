@@ -1,0 +1,11 @@
+const fetchUsers = async (page = 1, limit = 20) => {
+  const url = `https://api.example.com/users?page=${page}&limit=${limit}`;
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("fetch failed:", err);
+    return { data: [], total: 0 };
+  }
+};

@@ -1,0 +1,16 @@
+interface User {
+  id: number;
+  name: string;
+  roles: Array<"admin" | "editor" | "viewer">;
+}
+
+function hasRole(user: User, role: User["roles"][number]): boolean {
+  return user.roles.includes(role);
+}
+
+const users: User[] = [
+  { id: 1, name: "Ada", roles: ["admin"] },
+  { id: 2, name: "Alan", roles: ["viewer"] },
+];
+
+users.filter((u) => hasRole(u, "admin")).forEach((u) => console.log(u.name));
