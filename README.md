@@ -72,6 +72,40 @@ func main() {
 }
 ```
 
+## Multi-Provider Token Counting (Offline Only)
+
+`CountForModel` counts text the way a given model's provider would count it, for providers beyond OpenAI, **without ever making a network call**:
+
+```go
+res, err := tokenizer.CountForModel("gpt-4o", "Hello, world!")
+// res.Accuracy == tokenizer.AccuracyExactLocal — OpenAI's real embedded tokenizer.
+
+res, err = tokenizer.CountForModel("claude-3-5-sonnet-20241022", "Hello, world!",
+	tokenizer.WithHeuristicFallback())
+// res.Accuracy == tokenizer.AccuracyEstimatedHeuristic — Anthropic and Google
+// do not publish a tokenizer, so this counts with the nearest embedded
+// tokenizer (o200k_base) instead. Use res.UpperBound(), not res.Tokens,
+// when enforcing a hard budget against an estimate.
+```
+
+Every model resolves through one `Registry` (`ResolveModel`/`LookupModel`), so `ForModel`, `EncodingForModel`, and `CountForModel` can never disagree about the same model name:
+
+| Tier | Providers | Mechanism | `Accuracy` |
+| :--- | :--- | :--- | :--- |
+| Exact | OpenAI | embedded tiktoken BPE | `AccuracyExactLocal` |
+| Estimated | Anthropic, Google Gemini | nearest embedded tokenizer × a committed calibration profile | `AccuracyEstimatedCalibrated` (real measurements) or `AccuracyEstimatedHeuristic` (no measurements yet) |
+
+`ForModel` stays **exact-only**: it returns `ErrExactTokenizerUnavailable` for `claude-*`/`gemini-*` rather than silently handing back an approximate tokenizer under an exact-sounding name. `CountForModel` is where estimates live, and they are opt-in by default (`DefaultCountConfig` rejects uncalibrated heuristic estimates unless you pass `WithHeuristicFallback()`; pass `WithExactOnly()` to reject every kind of estimate).
+
+The two shipped profiles (`internal/calib/profiles/anthropic-claude-v1.json`, `gemini-v1.json`) are currently **uncalibrated identity placeholders**: `sample_count: 0`, meaning nobody has yet run real measurements against Anthropic's or Google's counting APIs, so the "estimate" is simply the nearest tokenizer's raw count with no correction applied — which is exactly why it reports `AccuracyEstimatedHeuristic` rather than `AccuracyEstimatedCalibrated`. Maintainers can upgrade a profile by running `scripts/calibrate.py` (maintainer-only; the *only* place in this project that calls a provider's network API, and never at library runtime) against a real corpus and committing the result — the accuracy label upgrades automatically once `sample_count > 0`, with no code change required.
+
+Extending this to another provider without forking the library:
+
+```go
+// after registering (or embedding) a calib.Profile under this ID:
+tokenizer.RegisterModelFallbackPrefix("mistral-", tokenizer.ProviderMistral, "mistral-v1")
+```
+
 ## Thread Safety
 
 All `Tokenizer` instances are immutable and **safe for concurrent use by multiple goroutines**.

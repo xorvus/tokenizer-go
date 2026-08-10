@@ -7,5 +7,8 @@ type Resolution struct {
 	TokenizerID    string   `json:"tokenizer_id"`
 	Accuracy       Accuracy `json:"accuracy"`
 	UsedFallback   bool     `json:"used_fallback"`
-	Reason         string   `json:"reason,omitempty"`
+	// ProfileID names the calibration profile used to scale the nearest
+	// embedded tokenizer's count. Only set when UsedFallback is true.
+	ProfileID string `json:"profile_id,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 }

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 
 	"github.com/xorvus/tokenizer-go/internal/bpe"
+	"github.com/xorvus/tokenizer-go/internal/calib"
 	"github.com/xorvus/tokenizer-go/internal/openai"
 )
 
@@ -23,6 +25,10 @@ type Tokenizer struct {
 	options Options
 }
 
+// var _ Engine = (*Tokenizer)(nil): compile-time assertion that *Tokenizer
+// implements Engine.
+var _ Engine = (*Tokenizer)(nil)
+
 func validateAndCopyConfig(cfg Config) (map[string]int, []string, map[string]int, error) {
 	if cfg.Pattern == "" {
 		return nil, nil, nil, ErrEmptyPattern
@@ -31,19 +37,47 @@ func validateAndCopyConfig(cfg Config) (map[string]int, []string, map[string]int
 		return nil, nil, nil, ErrEmptyVocabulary
 	}
 
-	// 1. Verify all 0-255 single-byte tokens exist
-	byteSeen := make([]bool, 256)
-	maxRank := -1
-	usedRanks := make(map[int]string, len(cfg.MergeableRanks)+len(cfg.SpecialTokens))
+	// Copy MergeableRanks for immutability and validate.
+	ranksCopy, usedRanks, maxRank, byteSeen, err := collectMergeableRanks(cfg.MergeableRanks)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	// Copy MergeableRanks for immutability and validate
-	ranksCopy := make(map[string]int, len(cfg.MergeableRanks))
-	for token, rank := range cfg.MergeableRanks {
+	// Verify all 0-255 single-byte tokens exist.
+	for b := 0; b <= 255; b++ {
+		if !byteSeen[b] {
+			return nil, nil, nil, fmt.Errorf("%w: missing byte 0x%02X (%d)", ErrMissingByteToken, b, b)
+		}
+	}
+
+	// Reconstruct decoder slice.
+	decoderSlice := make([]string, maxRank+1)
+	for token, rank := range ranksCopy {
+		decoderSlice[rank] = token
+	}
+
+	// Copy SpecialTokens for immutability and validate.
+	specialCopy, err := collectSpecialTokens(cfg.SpecialTokens, ranksCopy, usedRanks)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return ranksCopy, decoderSlice, specialCopy, nil
+}
+
+// collectMergeableRanks copies and validates ranks, tracking used ranks,
+// max rank, and present single bytes for the byte-completeness check.
+func collectMergeableRanks(mergeable map[string]int) (ranksCopy map[string]int, usedRanks map[int]string, maxRank int, byteSeen []bool, err error) {
+	byteSeen = make([]bool, 256)
+	maxRank = -1
+	usedRanks = make(map[int]string, len(mergeable))
+	ranksCopy = make(map[string]int, len(mergeable))
+	for token, rank := range mergeable {
 		if rank < 0 {
-			return nil, nil, nil, fmt.Errorf("%w: token %q has rank %d", ErrNegativeRank, token, rank)
+			return nil, nil, 0, nil, fmt.Errorf("%w: token %q has rank %d", ErrNegativeRank, token, rank)
 		}
 		if existingToken, exists := usedRanks[rank]; exists {
-			return nil, nil, nil, fmt.Errorf("%w: rank %d used by %q and %q", ErrDuplicateRank, rank, existingToken, token)
+			return nil, nil, 0, nil, fmt.Errorf("%w: rank %d used by %q and %q", ErrDuplicateRank, rank, existingToken, token)
 		}
 		usedRanks[rank] = token
 		ranksCopy[token] = rank
@@ -55,36 +89,29 @@ func validateAndCopyConfig(cfg Config) (map[string]int, []string, map[string]int
 			maxRank = rank
 		}
 	}
+	return ranksCopy, usedRanks, maxRank, byteSeen, nil
+}
 
-	for b := 0; b <= 255; b++ {
-		if !byteSeen[b] {
-			return nil, nil, nil, fmt.Errorf("%w: missing byte 0x%02X (%d)", ErrMissingByteToken, b, b)
-		}
+// collectSpecialTokens copies and validates SpecialTokens.
+func collectSpecialTokens(special map[string]int, ranksCopy map[string]int, usedRanks map[int]string) (map[string]int, error) {
+	if len(special) == 0 {
+		return map[string]int{}, nil
 	}
-
-	// Reconstruct decoder slice
-	decoderSlice := make([]string, maxRank+1)
-	for token, rank := range ranksCopy {
-		decoderSlice[rank] = token
-	}
-
-	// Copy SpecialTokens for immutability and validate
-	specialCopy := make(map[string]int, len(cfg.SpecialTokens))
-	for token, rank := range cfg.SpecialTokens {
+	specialCopy := make(map[string]int, len(special))
+	for token, rank := range special {
 		if rank < 0 {
-			return nil, nil, nil, fmt.Errorf("%w: special token %q has rank %d", ErrNegativeRank, token, rank)
+			return nil, fmt.Errorf("%w: special token %q has rank %d", ErrNegativeRank, token, rank)
 		}
 		if _, exists := ranksCopy[token]; exists {
-			return nil, nil, nil, fmt.Errorf("%w: token %q is both regular and special", ErrTokenConflict, token)
+			return nil, fmt.Errorf("%w: token %q is both regular and special", ErrTokenConflict, token)
 		}
 		if existingToken, exists := usedRanks[rank]; exists {
-			return nil, nil, nil, fmt.Errorf("%w: special rank %d used by %q and %q", ErrDuplicateRank, rank, existingToken, token)
+			return nil, fmt.Errorf("%w: special rank %d used by %q and %q", ErrDuplicateRank, rank, existingToken, token)
 		}
 		usedRanks[rank] = token
 		specialCopy[token] = rank
 	}
-
-	return ranksCopy, decoderSlice, specialCopy, nil
+	return specialCopy, nil
 }
 
 func newTokenizer(core *bpe.CoreBPE) *Tokenizer {
@@ -145,6 +172,9 @@ func GetEncoding(name Encoding) (*Tokenizer, error) {
 	}
 }
 
+// ForModel returns the exact tokenizer for model. Exact-only: returns
+// ErrExactTokenizerUnavailable for models that only resolve to an estimate;
+// use CountForModel with WithCalibratedFallback to opt into those.
 func ForModel(model string) (*Tokenizer, error) {
 	encoding, err := EncodingForModel(model)
 	if err != nil {
@@ -153,16 +183,16 @@ func ForModel(model string) (*Tokenizer, error) {
 	return GetEncoding(encoding)
 }
 
+// EncodingForModel resolves model to its exact embedded Encoding. See ForModel.
 func EncodingForModel(model string) (Encoding, error) {
-	if enc, ok := openai.ModelToEncoding[model]; ok {
-		return Encoding(enc), nil
+	res, err := ResolveModel(model)
+	if err != nil {
+		return "", err
 	}
-	for prefix, enc := range openai.ModelPrefixToEncoding {
-		if strings.HasPrefix(model, prefix) {
-			return Encoding(enc), nil
-		}
+	if res.UsedFallback {
+		return "", fmt.Errorf("%w: %s has no embedded exact tokenizer (nearest-tokenizer estimate available via CountForModel)", ErrExactTokenizerUnavailable, model)
 	}
-	return "", fmt.Errorf("%w: %s", ErrUnknownModel, model)
+	return Encoding(res.TokenizerID), nil
 }
 
 func (t *Tokenizer) WithOptions(opts Options) *Tokenizer {
@@ -352,6 +382,11 @@ func (t *Tokenizer) DecodeBytesBatch(batch [][]int) ([][]byte, error) {
 	return res, nil
 }
 
+// CountForModel counts text as model would be counted by its provider.
+// Exact for embedded tokenizers; an offline nearest-tokenizer estimate
+// scaled by a calibration profile otherwise. Estimates are allowed only
+// when calibrated; use CountResult.UpperBound() for a hard budget, or
+// WithHeuristicFallback()/WithExactOnly() to change fallback policy.
 func CountForModel(model string, text string, opts ...CountOption) (CountResult, error) {
 	cfg := DefaultCountConfig()
 	for _, opt := range opts {
@@ -363,8 +398,8 @@ func CountForModel(model string, text string, opts ...CountOption) (CountResult,
 		return CountResult{}, err
 	}
 
-	if cfg.ExactOnly && res.UsedFallback {
-		return CountResult{}, fmt.Errorf("%w: model %s requires fallback but ExactOnly requested", ErrExactTokenizerUnavailable, model)
+	if err := checkFallbackAllowed(res, cfg); err != nil {
+		return CountResult{}, err
 	}
 
 	tok, err := GetEncoding(Encoding(res.TokenizerID))
@@ -372,13 +407,13 @@ func CountForModel(model string, text string, opts ...CountOption) (CountResult,
 		return CountResult{}, err
 	}
 
-	count, err := tok.Count(text)
+	base, err := tok.Count(text)
 	if err != nil {
 		return CountResult{}, err
 	}
 
-	return CountResult{
-		Tokens:         count,
+	out := CountResult{
+		Tokens:         base,
 		RequestedModel: res.RequestedModel,
 		CanonicalModel: res.CanonicalModel,
 		TokenizerID:    res.TokenizerID,
@@ -386,5 +421,48 @@ func CountForModel(model string, text string, opts ...CountOption) (CountResult,
 		Accuracy:       res.Accuracy,
 		UsedFallback:   res.UsedFallback,
 		FallbackReason: res.Reason,
-	}, nil
+	}
+	if !res.UsedFallback {
+		return out, nil
+	}
+
+	prof, ok := calib.Lookup(res.ProfileID)
+	if !ok {
+		// Resolve only sets UsedFallback when it found the profile, so
+		// this should be unreachable barring a profile being unregistered
+		// between Resolve and here. Report the unscaled base count rather
+		// than fail outright.
+		return out, nil
+	}
+	ratio := prof.RatioFor(calib.Classify(text))
+	if ratio.Mean > 0 {
+		out.Tokens = int(math.Ceil(float64(base) * ratio.Mean))
+	}
+	out.Calibration = &Calibration{
+		ProfileID:       prof.ProfileID,
+		SampleCount:     prof.SampleCount,
+		MeanAbsErrorPct: ratio.MeanAbsErrorPct,
+		P95AbsErrorPct:  ratio.P95AbsErrorPct,
+		MaxAbsErrorPct:  ratio.MaxAbsErrorPct,
+		CorpusSHA256:    prof.CorpusSHA256,
+	}
+	return out, nil
+}
+
+// checkFallbackAllowed reports whether an estimate for res is allowed.
+func checkFallbackAllowed(res Resolution, cfg CountConfig) error {
+	if !res.UsedFallback {
+		return nil
+	}
+	switch res.Accuracy {
+	case AccuracyEstimatedCalibrated:
+		if !cfg.AllowCalibratedFallback {
+			return fmt.Errorf("%w: %s only resolves to a calibrated estimate, and calibrated fallback is disabled", ErrExactTokenizerUnavailable, res.RequestedModel)
+		}
+	case AccuracyEstimatedHeuristic:
+		if !cfg.AllowHeuristicFallback {
+			return fmt.Errorf("%w: %s has no calibrated profile yet (only an uncalibrated heuristic estimate); pass WithHeuristicFallback() to allow it", ErrExactTokenizerUnavailable, res.RequestedModel)
+		}
+	}
+	return nil
 }

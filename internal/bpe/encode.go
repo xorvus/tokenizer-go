@@ -200,19 +200,20 @@ func partitionByBytes(texts []string, maxWorkers int) []int {
 	return bounds
 }
 
-func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
+// runParallelBatch runs fn over texts, parallel when partitioning pays off.
+// Shared by the encode and count batch paths so they stay identical.
+func runParallelBatch[T any](texts []string, fn func(string) (T, error)) ([]T, error) {
 	n := len(texts)
+	results := make([]T, n)
 	if n == 0 {
-		return [][]int{}, nil
+		return results, nil
 	}
-
-	results := make([][]int, n)
 	if n == 1 {
-		tokens, err := bp.EncodeOrdinarySequential(texts[0])
+		v, err := fn(texts[0])
 		if err != nil {
 			return nil, err
 		}
-		results[0] = tokens
+		results[0] = v
 		return results, nil
 	}
 
@@ -221,89 +222,31 @@ func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
 		numWorkers = maxBatchWorkers
 	}
 	bounds := partitionByBytes(texts, numWorkers)
-	numPartitions := len(bounds) - 1
+	if len(bounds) <= 2 {
+		return runSequential(texts, results, fn)
+	}
+	return runParallelChunks(texts, results, bounds, fn)
+}
 
-	if numPartitions <= 1 {
-		for i := 0; i < n; i++ {
-			tokens, err := bp.EncodeOrdinarySequential(texts[i])
-			if err != nil {
-				return nil, err
-			}
-			results[i] = tokens
+func runSequential[T any](texts []string, results []T, fn func(string) (T, error)) ([]T, error) {
+	for i := 0; i < len(texts); i++ {
+		v, err := fn(texts[i])
+		if err != nil {
+			return nil, err
 		}
-		return results, nil
-	}
-
-	var wg sync.WaitGroup
-	var errOnce sync.Once
-	var firstErr error
-
-	for w := 0; w < numPartitions; w++ {
-		startIdx := bounds[w]
-		endIdx := bounds[w+1]
-
-		wg.Add(1)
-		go func(start, end int) {
-			defer wg.Done()
-			for i := start; i < end; i++ {
-				tokens, err := bp.EncodeOrdinarySequential(texts[i])
-				if err != nil {
-					errOnce.Do(func() {
-						firstErr = err
-					})
-					return
-				}
-				results[i] = tokens
-			}
-		}(startIdx, endIdx)
-	}
-	wg.Wait()
-
-	if firstErr != nil {
-		return nil, firstErr
+		results[i] = v
 	}
 	return results, nil
 }
 
-func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
-	n := len(texts)
-	if n == 0 {
-		return []int{}, nil
-	}
-
-	results := make([]int, n)
-	if n == 1 {
-		count, err := bp.CountOrdinarySequential(texts[0])
-		if err != nil {
-			return nil, err
-		}
-		results[0] = count
-		return results, nil
-	}
-
-	numWorkers := runtime.GOMAXPROCS(0)
-	if numWorkers > maxBatchWorkers {
-		numWorkers = maxBatchWorkers
-	}
-	bounds := partitionByBytes(texts, numWorkers)
-	numPartitions := len(bounds) - 1
-
-	if numPartitions <= 1 {
-		for i := 0; i < n; i++ {
-			count, err := bp.CountOrdinarySequential(texts[i])
-			if err != nil {
-				return nil, err
-			}
-			results[i] = count
-		}
-		return results, nil
-	}
-
+// runParallelChunks fans out bounds-defined spans of texts across
+// goroutines; errOnce captures the first error race-free.
+func runParallelChunks[T any](texts []string, results []T, bounds []int, fn func(string) (T, error)) ([]T, error) {
 	var wg sync.WaitGroup
 	var errOnce sync.Once
 	var firstErr error
 
-	for w := 0; w < numPartitions; w++ {
+	for w := 0; w < len(bounds)-1; w++ {
 		startIdx := bounds[w]
 		endIdx := bounds[w+1]
 
@@ -311,23 +254,27 @@ func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
 		go func(start, end int) {
 			defer wg.Done()
 			for i := start; i < end; i++ {
-				count, err := bp.CountOrdinarySequential(texts[i])
+				v, err := fn(texts[i])
 				if err != nil {
 					errOnce.Do(func() {
 						firstErr = err
 					})
 					return
 				}
-				results[i] = count
+				results[i] = v
 			}
 		}(startIdx, endIdx)
 	}
 	wg.Wait()
+	return results, firstErr
+}
 
-	if firstErr != nil {
-		return nil, firstErr
-	}
-	return results, nil
+func (bp *CoreBPE) EncodeOrdinaryBatchNative(texts []string) ([][]int, error) {
+	return runParallelBatch(texts, bp.EncodeOrdinarySequential)
+}
+
+func (bp *CoreBPE) CountOrdinaryBatchNative(texts []string) ([]int, error) {
+	return runParallelBatch(texts, bp.CountOrdinarySequential)
 }
 
 func (bp *CoreBPE) EncodeSubTextMatches(subText string, ret []int) ([]int, int, error) {
@@ -335,45 +282,9 @@ func (bp *CoreBPE) EncodeSubTextMatches(subText string, ret []int) ([]int, int, 
 	if err != nil {
 		return nil, 0, err
 	}
-	numPieces := len(indices)
-	if numPieces >= 10000 && len(subText) >= 1000000 {
-		numWorkers := runtime.GOMAXPROCS(0)
-		if numWorkers > maxParallelWorkers {
-			numWorkers = maxParallelWorkers
-		}
-		if numWorkers > 1 {
-			chunkSize := (numPieces + numWorkers - 1) / numWorkers
-			chunks := make([][]int, numWorkers)
-			var wg sync.WaitGroup
-			for i := 0; i < numWorkers; i++ {
-				startIdx := i * chunkSize
-				if startIdx >= numPieces {
-					break
-				}
-				endIdx := startIdx + chunkSize
-				if endIdx > numPieces {
-					endIdx = numPieces
-				}
-				wg.Add(1)
-				go func(workerID, start, end int) {
-					defer wg.Done()
-					pieceIndices := indices[start:end]
-					buf := make([]int, 0, (end-start)*2)
-					for _, pair := range pieceIndices {
-						buf = bp.EncodePieceTo(subText[pair[0]:pair[1]], buf)
-					}
-					chunks[workerID] = buf
-				}(i, startIdx, endIdx)
-			}
-			wg.Wait()
-			lastLen := 0
-			for _, chunk := range chunks {
-				ret = append(ret, chunk...)
-				if len(chunk) > 0 {
-					lastLen = len(chunk)
-				}
-			}
-			return ret, lastLen, nil
+	if len(indices) >= 10000 && len(subText) >= 1000000 {
+		if res, lastLen, ok := bp.encodeSubTextParallel(subText, indices, ret); ok {
+			return res, lastLen, nil
 		}
 	}
 
@@ -384,6 +295,52 @@ func (bp *CoreBPE) EncodeSubTextMatches(subText string, ret []int) ([]int, int, 
 		lastLen = len(ret) - before
 	}
 	return ret, lastLen, nil
+}
+
+// encodeSubTextParallel encodes indices across workers; ok=false when only
+// one worker is available, so the caller falls back to sequential.
+func (bp *CoreBPE) encodeSubTextParallel(subText string, indices [][]int, ret []int) ([]int, int, bool) {
+	numWorkers := runtime.GOMAXPROCS(0)
+	if numWorkers > maxParallelWorkers {
+		numWorkers = maxParallelWorkers
+	}
+	if numWorkers <= 1 {
+		return nil, 0, false
+	}
+
+	chunkSize := (len(indices) + numWorkers - 1) / numWorkers
+	chunks := make([][]int, numWorkers)
+	var wg sync.WaitGroup
+	for i := 0; i < numWorkers; i++ {
+		startIdx := i * chunkSize
+		if startIdx >= len(indices) {
+			break
+		}
+		endIdx := startIdx + chunkSize
+		if endIdx > len(indices) {
+			endIdx = len(indices)
+		}
+		wg.Add(1)
+		go func(workerID, start, end int) {
+			defer wg.Done()
+			pieceIndices := indices[start:end]
+			buf := make([]int, 0, (end-start)*2)
+			for _, pair := range pieceIndices {
+				buf = bp.EncodePieceTo(subText[pair[0]:pair[1]], buf)
+			}
+			chunks[workerID] = buf
+		}(i, startIdx, endIdx)
+	}
+	wg.Wait()
+
+	lastLen := 0
+	for _, chunk := range chunks {
+		ret = append(ret, chunk...)
+		if len(chunk) > 0 {
+			lastLen = len(chunk)
+		}
+	}
+	return ret, lastLen, true
 }
 
 func (bp *CoreBPE) EncodeNative(text string, allowed map[string]any) ([]int, int, error) {
