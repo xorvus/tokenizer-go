@@ -9,3 +9,6 @@
 
 # SonarQube scanner working directory
 .scannerwork/
+
+# SonarQube Go test report (regenerated before each scan)
+report.json
