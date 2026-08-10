@@ -9,7 +9,3 @@
 
 # SonarQube scanner working directory
 .scannerwork/
-
-# AI-generated docs and analysis artifacts (not part of the library)
-docs/
-tokenizer-go-audit.md
