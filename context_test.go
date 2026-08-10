@@ -51,6 +51,66 @@ func TestContextCancellation(t *testing.T) {
 	}
 }
 
+func TestContextBatchSuccessAndNil(t *testing.T) {
+	tok, err := tokenizer.GetEncoding(tokenizer.O200KBase)
+	if err != nil {
+		t.Fatalf("failed loading o200k_base: %v", err)
+	}
+	texts := []string{"text 1", "text 2", "text 3"}
+
+	got, err := tok.CountOrdinaryBatchContext(context.Background(), texts)
+	if err != nil {
+		t.Fatalf("CountOrdinaryBatchContext error: %v", err)
+	}
+	want, err := tok.CountOrdinaryBatch(texts)
+	if err != nil {
+		t.Fatalf("CountOrdinaryBatch error: %v", err)
+	}
+	if len(got) != len(want) {
+		t.Fatalf("CountOrdinaryBatchContext = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("CountOrdinaryBatchContext[%d] = %d, want %d", i, got[i], want[i])
+		}
+	}
+
+	enc, err := tok.EncodeOrdinaryBatchContext(context.Background(), texts)
+	if err != nil {
+		t.Fatalf("EncodeOrdinaryBatchContext error: %v", err)
+	}
+	encWant, err := tok.EncodeOrdinaryBatch(texts)
+	if err != nil {
+		t.Fatalf("EncodeOrdinaryBatch error: %v", err)
+	}
+	if len(enc) != len(encWant) {
+		t.Fatalf("EncodeOrdinaryBatchContext len = %d, want %d", len(enc), len(encWant))
+	}
+
+	// nil context is allowed and proceeds
+	if _, err := tok.CountContext(nil, "hello"); err != nil {
+		t.Errorf("CountContext(nil) error: %v", err)
+	}
+	if _, err := tok.EncodeContext(nil, "hello"); err != nil {
+		t.Errorf("EncodeContext(nil) error: %v", err)
+	}
+}
+
+func TestEncodeSingleTokenErrors(t *testing.T) {
+	tok, err := tokenizer.GetEncoding(tokenizer.O200KBase)
+	if err != nil {
+		t.Fatalf("failed loading o200k_base: %v", err)
+	}
+	// text that splits into multiple tokens
+	if _, err := tok.EncodeSingleToken("supercalifragilisticexpialidocious"); err == nil {
+		t.Error("expected ErrInvalidSingleToken for multi-token text")
+	}
+	// unknown token id
+	if _, err := tok.DecodeSingleTokenBytes(9999999); err == nil {
+		t.Error("expected error for unknown token id")
+	}
+}
+
 func TestWithOptionsConfiguration(t *testing.T) {
 	tok, err := tokenizer.GetEncoding(tokenizer.O200KBase)
 	if err != nil {

@@ -39,3 +39,40 @@ func TestRegistryExactPrecedesAlias(t *testing.T) {
 		t.Fatalf("exact match should take precedence over alias: %+v, err: %v", res, err)
 	}
 }
+
+func TestRegistryLookupAllBranches(t *testing.T) {
+	r := newDefaultRegistry()
+
+	spec, ok := r.Lookup("gpt-4o")
+	if !ok || spec.TokenizerID != "o200k_base" {
+		t.Errorf("Lookup(exact) = %+v, %v", spec, ok)
+	}
+
+	r.aliases["lookup-alias"] = "gpt-4"
+	spec, ok = r.Lookup("lookup-alias")
+	if !ok || spec.CanonicalName != "gpt-4" {
+		t.Errorf("Lookup(alias) = %+v, %v", spec, ok)
+	}
+
+	spec, ok = r.Lookup("gpt-4o-2024-05-13")
+	if !ok || spec.CanonicalName != "gpt-4o-2024-05-13" {
+		t.Errorf("Lookup(prefix) = %+v, %v", spec, ok)
+	}
+
+	spec, ok = r.Lookup("gemini-1.5-pro")
+	if !ok || spec.TokenizerID != "o200k_base" {
+		t.Errorf("Lookup(fallback) = %+v, %v", spec, ok)
+	}
+
+	if _, ok = r.Lookup("no-such-model-xyz"); ok {
+		t.Error("Lookup(miss) expected ok=false")
+	}
+}
+
+func TestSanitizeOptionsFillsZeroDefaults(t *testing.T) {
+	def := DefaultOptions()
+	got := sanitizeOptions(Options{})
+	if got.MaxWorkers != def.MaxWorkers || got.ParallelByteThreshold != def.ParallelByteThreshold || got.BatchByteThreshold != def.BatchByteThreshold {
+		t.Errorf("sanitizeOptions(Options{}) = %+v, want defaults %+v", got, def)
+	}
+}
