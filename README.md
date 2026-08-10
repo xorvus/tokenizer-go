@@ -4,7 +4,7 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 
 ## Features
 
-- **Blazing Fast**: Outperforms official OpenAI `tiktoken` (Rust native) in single-thread and multi-core benchmarks (`37.448 ns/op` vs `37.975 ns/op`).
+- **Blazing Fast**: Single-thread `37.4 µs/op` on `o200k_base` and `36.5 µs/op` on `cl100k_base` via PGO inlining.
 - **100% Pure Go**: Zero CGO dependencies with embedded vocabulary files (`//go:embed`).
 - **Thread-Safe & Immutable**: All `Tokenizer` instances are fully thread-safe and read-only immutable after construction.
 - **OpenAI Parity & Harmony**: Supports `cl100k_base`, `o200k_base`, and `o200k_harmony` with model mappings for `gpt-4o`, `gpt-4.5`, `gpt-oss-*`, `o1`, `o3`, etc.
@@ -16,14 +16,14 @@ High-performance, pure Go implementation of OpenAI's `tiktoken` BPE tokenizer wi
 
 ## Performance Benchmarks (Apple M4 Pro, macOS 15.0)
 
-| Scenario / Task | `tokenizer-go` (Pure Go v1.0.0 + PGO) | Official OpenAI `tiktoken` (Rust Native) | Speedup / Advantage |
-| :--- | :---: | :---: | :---: |
-| **`o200k_base` (GPT-4o)** | **`37,448 ns/op`** | `37,975 ns/op` | 🥇 **Faster than Rust Native** |
-| **`cl100k_base` (GPT-4)** | **`36,515 ns/op`** | `35,200 ns/op` | ~96% Rust Parity |
-| **Short ASCII** ("Hello, world!") | **`954.7 ns/op`** | `1,344.0 ns/op` | 🚀 **~28.9% Faster** |
-| **Full Document UDHR** (3.4 MB) | **`208.88 ms/op`** (`16.46 MB/s`) | `304.38 ms/op` (`10.77 MB/s`) | 🚀 **1.53x Throughput** |
-| **Multi-Line Batch** (8,348 texts) | **`86.58 ms`** | Terhambat Python GIL | 🚀 **3.63x Multi-core Speedup** |
-| **Count-Only Batch** (8,348 texts) | **`83.19 ms`** (`81.95 MB/op`) | N/A | 📉 **19.3% Memory Savings** |
+| Scenario / Task | `tokenizer-go` (Pure Go v1.0.0 + PGO) |
+| :--- | :---: |
+| **`o200k_base` (GPT-4o)** | `37,448 ns/op` |
+| **`cl100k_base` (GPT-4)** | `36,515 ns/op` |
+| **Short ASCII** ("Hello, world!") | `954.7 ns/op` |
+| **Full Document UDHR** (3.4 MB) | `208.88 ms/op` (`16.46 MB/s`) |
+| **Multi-Line Batch** (8,348 texts) | `86.58 ms` |
+| **Count-Only Batch** (8,348 texts) | `83.19 ms` (`81.95 MB/op`) |
 
 ## Installation
 
