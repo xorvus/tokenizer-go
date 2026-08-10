@@ -37,53 +37,72 @@ func Classify(text string) Bucket {
 		// A truncated rune at the boundary decodes as replacement runes;
 		// negligible noise at this sample size.
 	}
+	return countScripts(sample).bucket()
+}
 
-	var cjk, kana, hangul, letters, latinLetters, punct, total int
+// scriptCounts tallies runes Classify needs; kept together so the two
+// helpers stay readable.
+type scriptCounts struct {
+	cjk, kana, hangul, letters, latinLetters, punct, total int
+}
+
+func countScripts(sample string) scriptCounts {
+	var c scriptCounts
 	for _, r := range sample {
-		total++
+		c.total++
 		switch {
 		case isCJK(r):
-			cjk++
-			letters++
-			switch {
-			case unicode.Is(unicode.Hiragana, r) || unicode.Is(unicode.Katakana, r):
-				kana++
-			case unicode.Is(unicode.Hangul, r):
-				hangul++
+			c.cjk++
+			c.letters++
+			if isKana(r) {
+				c.kana++
+			} else if isHangul(r) {
+				c.hangul++
 			}
 		case unicode.IsLetter(r):
-			letters++
+			c.letters++
 			if isLatin(r) {
-				latinLetters++
+				c.latinLetters++
 			}
 		case r < 0x80 && (unicode.IsPunct(r) || unicode.IsSymbol(r)):
-			punct++
+			c.punct++
 		}
 	}
-	if total == 0 {
+	return c
+}
+
+func (c scriptCounts) bucket() Bucket {
+	if c.total == 0 {
 		return BucketLatin
 	}
-
 	switch {
-	case pct(cjk, total) >= 20:
+	case pct(c.cjk, c.total) >= 20:
 		switch {
-		case hangul > 0:
+		case c.hangul > 0:
 			// Hangul presence marks Korean even mixed with Han.
 			return BucketKo
-		case kana > 0:
+		case c.kana > 0:
 			// Japanese mixes Han kanji with kana; kana presence marks it.
 			return BucketJa
 		default:
 			return BucketZh
 		}
-	case pct(punct, total) >= 15:
+	case pct(c.punct, c.total) >= 15:
 		// Dense braces/semicolons/quotes/operators signal code or markup.
 		return BucketCode
-	case pct(letters, total) >= 40 && latinLetters == letters:
+	case pct(c.letters, c.total) >= 40 && c.latinLetters == c.letters:
 		return BucketLatin
 	default:
 		return BucketOther
 	}
+}
+
+func isKana(r rune) bool {
+	return unicode.Is(unicode.Hiragana, r) || unicode.Is(unicode.Katakana, r)
+}
+
+func isHangul(r rune) bool {
+	return unicode.Is(unicode.Hangul, r)
 }
 
 func pct(n, total int) int {
