@@ -1,0 +1,17 @@
+package main
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
+
+func main() {
+	words := []string{"banana", "apple", "cherry", "date"}
+	sort.Strings(words)
+	joined := strings.Join(words, ", ")
+	fmt.Printf("sorted: %s\n", joined)
+	if len(words) > 0 {
+		fmt.Printf("first: %s\n", words[0])
+	}
+}

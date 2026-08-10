@@ -42,6 +42,11 @@ func TestGeminiResolvesToNearestTokenizerFallback(t *testing.T) {
 	if !res.UsedFallback || res.Provider != tokenizer.ProviderGemini || res.TokenizerID != "o200k_base" {
 		t.Fatalf("unexpected resolution: %+v", res)
 	}
+	// The shipped gemini-v1 profile is calibrated (sample_count > 0), so the
+	// estimate must be labeled Calibrated, not Heuristic.
+	if res.Accuracy != tokenizer.AccuracyEstimatedCalibrated {
+		t.Errorf("Accuracy = %v, want %v (profile is calibrated)", res.Accuracy, tokenizer.AccuracyEstimatedCalibrated)
+	}
 }
 
 func TestForModelRejectsFallbackOnlyModels(t *testing.T) {
@@ -60,6 +65,24 @@ func TestCountForModelDefaultRejectsUncalibratedFallback(t *testing.T) {
 	_, err := tokenizer.CountForModel("claude-3-5-sonnet-20241022", "hello world")
 	if !errors.Is(err, tokenizer.ErrExactTokenizerUnavailable) {
 		t.Errorf("expected default config to reject an uncalibrated heuristic estimate, got %v", err)
+	}
+}
+
+func TestCountForModelGeminiCalibratedByDefault(t *testing.T) {
+	// A calibrated fallback (gemini) must be allowed with no opt-in and must
+	// report the calibration profile.
+	res, err := tokenizer.CountForModel("gemini-1.5-pro", "hello world")
+	if err != nil {
+		t.Fatalf("CountForModel(gemini-*) with calibrated fallback error: %v", err)
+	}
+	if res.Accuracy != tokenizer.AccuracyEstimatedCalibrated {
+		t.Errorf("Accuracy = %v, want %v", res.Accuracy, tokenizer.AccuracyEstimatedCalibrated)
+	}
+	if res.Calibration == nil || res.Calibration.SampleCount <= 0 {
+		t.Fatalf("expected calibration metadata with samples, got %+v", res.Calibration)
+	}
+	if res.Tokens <= 0 {
+		t.Errorf("Tokens = %d, want > 0", res.Tokens)
 	}
 }
 

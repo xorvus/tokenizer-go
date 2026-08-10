@@ -69,6 +69,7 @@ class Sample:
 
 
 def load_corpus(corpus_dir: Path) -> list[Sample]:
+    corpus_dir = corpus_dir.resolve()  # s.path must be absolute for relative_to(REPO_ROOT)
     samples: list[Sample] = []
     for bucket in BUCKETS:
         bucket_dir = corpus_dir / bucket
