@@ -4,6 +4,17 @@ All notable changes to `tokenizer-go` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.0] - 2026-08-26
+
+### Added
+- **Multi-Provider Fallback Profiles**: Added calibration profiles and registry fallback prefixes for DeepSeek, Qwen, Kimi, Grok, and Mistral.
+- **Go 1.27 Upgrade**: Upgraded module and CI workflow to Go 1.27.
+
+### Optimized
+- **Singleton Tokenizer Caching**: Cached embedded tokenizers (`cl100k_base`, `o200k_base`, `o200k_harmony`) via `sync.OnceValues` to eliminate repetitive vocabulary parsing.
+- **Zero-Allocation Counting**: Routed `Count` directly to `CountOrdinarySequential` without intermediate token slice allocations.
+- **Deterministic Prefix Matching**: Sorted prefix mappings by length descending for deterministic model resolution.
+
 ## [v1.0.0] - 2026-08-06
 
 ### Added

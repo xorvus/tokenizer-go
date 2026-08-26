@@ -206,12 +206,7 @@ func checkContext(ctx context.Context) error {
 	if ctx == nil {
 		return nil
 	}
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-		return nil
-	}
+	return ctx.Err()
 }
 
 func (t *Tokenizer) Encode(text string) ([]int, error) {
@@ -299,11 +294,7 @@ func (t *Tokenizer) EncodeSingleToken(text string) (int, error) {
 }
 
 func (t *Tokenizer) Count(text string) (int, error) {
-	tokens, err := t.EncodeOrdinary(text)
-	if err != nil {
-		return 0, err
-	}
-	return len(tokens), nil
+	return t.core.CountOrdinarySequential(text)
 }
 
 func (t *Tokenizer) CountOrdinaryBatch(texts []string) ([]int, error) {

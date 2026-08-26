@@ -35,29 +35,36 @@ func packKeyBytes(piece string, start, end int) (uint64, bool) {
 	return key, true
 }
 
-func NewRankIndex(ranks map[string]int) RankIndex {
-	idx := RankIndex{
-		shortPacked: make(map[uint64]int32, len(ranks)/4),
-		ranks:       ranks,
-	}
+func initShortRanks(idx *RankIndex) {
 	for i := range idx.short1 {
 		idx.short1[i] = missingShortRank
 	}
 	for i := range idx.short2 {
 		idx.short2[i] = missingShortRank
 	}
+}
+
+func populateRank(idx *RankIndex, token string, rank int) {
+	if rank > math.MaxInt32 {
+		return
+	}
+	if len(token) == 1 {
+		idx.short1[token[0]] = int32(rank)
+	} else if len(token) == 2 {
+		idx.short2[uint16(token[0])<<8|uint16(token[1])] = int32(rank)
+	} else if key, ok := packKey(token); ok {
+		idx.shortPacked[key] = int32(rank)
+	}
+}
+
+func NewRankIndex(ranks map[string]int) RankIndex {
+	idx := RankIndex{
+		shortPacked: make(map[uint64]int32, len(ranks)*2/3),
+		ranks:       ranks,
+	}
+	initShortRanks(&idx)
 	for token, rank := range ranks {
-		if rank > math.MaxInt32 {
-			continue
-		}
-		if len(token) == 1 {
-			idx.short1[token[0]] = int32(rank)
-		} else if len(token) == 2 {
-			key := uint16(token[0])<<8 | uint16(token[1])
-			idx.short2[key] = int32(rank)
-		} else if key, ok := packKey(token); ok {
-			idx.shortPacked[key] = int32(rank)
-		}
+		populateRank(&idx, token, rank)
 	}
 	return idx
 }

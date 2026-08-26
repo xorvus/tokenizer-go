@@ -1,0 +1,19 @@
+{
+  "profile_id": "deepseek-v1",
+  "target_model": "deepseek-*",
+  "provider": "deepseek",
+  "base_tokenizer": "o200k_base",
+  "ratios": {
+    "latin": { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "zh":    { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "ja":    { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "ko":    { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "code":  { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 },
+    "other": { "mean": 1.0, "p95": 1.0, "max": 1.0, "mean_abs_error_pct": 0, "p95_abs_error_pct": 0, "max_abs_error_pct": 0 }
+  },
+  "sample_count": 0,
+  "corpus_sha256": "",
+  "generated_at": "",
+  "tool_version": "",
+  "notes": "UNCALIBRATED IDENTITY PLACEHOLDER. sample_count is 0: no real DeepSeek count_tokens measurements back this profile. Ratios are 1.0 in every bucket, meaning CountForModel reports the nearest embedded tokenizer's raw o200k_base count unscaled for deepseek-* models."
+}

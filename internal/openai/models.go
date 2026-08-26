@@ -2,6 +2,7 @@ package openai
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -73,13 +74,34 @@ var ModelToEncoding = map[string]string{
 	"gpt-2":                        "gpt2",
 }
 
+type prefixMapping struct {
+	prefix   string
+	encoding string
+}
+
+var sortedModelPrefixes = buildSortedPrefixes()
+
+func buildSortedPrefixes() []prefixMapping {
+	res := make([]prefixMapping, 0, len(ModelPrefixToEncoding))
+	for p, enc := range ModelPrefixToEncoding {
+		res = append(res, prefixMapping{prefix: p, encoding: enc})
+	}
+	sort.SliceStable(res, func(i, j int) bool {
+		if len(res[i].prefix) != len(res[j].prefix) {
+			return len(res[i].prefix) > len(res[j].prefix)
+		}
+		return res[i].prefix < res[j].prefix
+	})
+	return res
+}
+
 func EncodingNameForModel(modelName string) (string, error) {
 	if enc, ok := ModelToEncoding[modelName]; ok {
 		return enc, nil
 	}
-	for prefix, enc := range ModelPrefixToEncoding {
-		if strings.HasPrefix(modelName, prefix) {
-			return enc, nil
+	for _, entry := range sortedModelPrefixes {
+		if strings.HasPrefix(modelName, entry.prefix) {
+			return entry.encoding, nil
 		}
 	}
 	return "", fmt.Errorf("could not automatically map %s to a tokenizer", modelName)

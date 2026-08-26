@@ -58,21 +58,28 @@ func buildDecoderSlice(encoder map[string]int) []string {
 	return decoder
 }
 
+func processVocabLine(encoder map[string]int, line string) error {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return nil
+	}
+	token, rank, err := parseVocabLine(line)
+	if err != nil {
+		return err
+	}
+	return validateAndInsert(encoder, token, rank)
+}
+
 func ParseVocabulary(r io.Reader) (*Vocabulary, error) {
-	encoder := make(map[string]int)
+	encoder := make(map[string]int, 131072)
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		token, rank, err := parseVocabLine(line)
-		if err != nil {
+		if err := processVocabLine(encoder, scanner.Text()); err != nil {
 			return nil, err
 		}
-		if err := validateAndInsert(encoder, token, rank); err != nil {
-			return nil, err
-		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 	return &Vocabulary{Encoder: encoder, Decoder: buildDecoderSlice(encoder)}, nil
 }

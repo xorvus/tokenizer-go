@@ -84,14 +84,39 @@ func openAICapabilities(encoding string) Capabilities {
 	return caps
 }
 
-// registerOfflineFallbacks registers providers with no embedded tokenizer as
-// nearest-tokenizer estimates (currently uncalibrated placeholders).
-func (r *Registry) registerOfflineFallbacks() {
-	fallbacks := []prefixEntry{
-		{"claude-", ModelSpec{Provider: ProviderAnthropic, FallbackProfile: "anthropic-claude-v1", Capabilities: CapabilityCountText}},
-		{"gemini-", ModelSpec{Provider: ProviderGemini, FallbackProfile: "gemini-v1", Capabilities: CapabilityCountText}},
+func fallbackSpec(p Provider, prof string) ModelSpec {
+	return ModelSpec{Provider: p, FallbackProfile: prof, Capabilities: CapabilityCountText}
+}
+
+func appendProviderFallbacks(list []prefixEntry) []prefixEntry {
+	f := fallbackSpec
+	return append(list,
+		prefixEntry{"kimi-", f(ProviderKimi, "kimi-v1")},
+		prefixEntry{"moonshot-", f(ProviderKimi, "kimi-v1")},
+		prefixEntry{"grok-", f(ProviderGrok, "grok-v1")},
+		prefixEntry{"mistral-", f(ProviderMistral, "mistral-v1")},
+		prefixEntry{"codestral-", f(ProviderMistral, "mistral-v1")},
+		prefixEntry{"ministral-", f(ProviderMistral, "mistral-v1")},
+		prefixEntry{"mixtral-", f(ProviderMistral, "mistral-v1")},
+		prefixEntry{"pixtral-", f(ProviderMistral, "mistral-v1")},
+	)
+}
+
+func defaultFallbacks() []prefixEntry {
+	f := fallbackSpec
+	base := []prefixEntry{
+		{"claude-", f(ProviderAnthropic, "anthropic-claude-v1")},
+		{"gemini-", f(ProviderGemini, "gemini-v1")},
+		{"deepseek-", f(ProviderDeepSeek, "deepseek-v1")},
+		{"qwen-", f(ProviderQwen, "qwen-v1")},
+		{"qwen2.5-", f(ProviderQwen, "qwen-v1")},
+		{"qwq-", f(ProviderQwen, "qwen-v1")},
 	}
-	r.fallbackPrefixes = sortPrefixesLongestFirst(fallbacks)
+	return appendProviderFallbacks(base)
+}
+
+func (r *Registry) registerOfflineFallbacks() {
+	r.fallbackPrefixes = sortPrefixesLongestFirst(defaultFallbacks())
 }
 
 // sortPrefixesLongestFirst makes the longest prefix win, with a lexical

@@ -43,7 +43,7 @@ func TestContextCancellation(t *testing.T) {
 	// 2. Timeout context
 	timeoutCtx, timeoutCancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer timeoutCancel()
-	time.Sleep(2 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	_, err = tok.EncodeContext(timeoutCtx, "hello world")
 	if !errors.Is(err, context.DeadlineExceeded) {
